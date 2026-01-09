@@ -47,3 +47,7 @@ export async function getTransactions(filters: string) {
 export async function getAdminHealth() {
   return safeFetch('/api/admin/system/health');
 }
+
+export async function getApiHealth() {
+  return safeFetch('/health');
+}

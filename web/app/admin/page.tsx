@@ -1,7 +1,8 @@
 import { getAdminHealth } from '../../lib/api';
 
 export default async function AdminPage() {
-  const health = await getAdminHealth();
+  const healthResponse = await getAdminHealth();
+  const health = healthResponse ?? { ticks: [], ingestion_runs: [], last_candles: [] };
 
   return (
     <section className="grid">

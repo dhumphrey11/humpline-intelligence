@@ -1,7 +1,8 @@
 import { getModels } from '../../lib/api';
 
 export default async function ModelsPage() {
-  const models = await getModels();
+  const modelsResponse = await getModels();
+  const models = Array.isArray(modelsResponse) ? modelsResponse : [];
 
   return (
     <section className="grid">

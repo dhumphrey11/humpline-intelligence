@@ -2,8 +2,10 @@ import { getEquityCurves, getMonitoring } from '../../lib/api';
 import { MiniChart } from '../../components/mini-chart';
 
 export default async function MonitoringPage() {
-  const leaderboard = await getMonitoring('90d');
-  const equity = await getEquityCurves(['1.0.0'], 180);
+  const leaderboardResponse = await getMonitoring('90d');
+  const leaderboard = Array.isArray(leaderboardResponse) ? leaderboardResponse : [];
+  const equityResponse = await getEquityCurves(['1.0.0'], 180);
+  const equity = Array.isArray(equityResponse) ? equityResponse : [];
   const equitySeries = equity.slice(-10).map((row: any) => Number(row.total_equity_usd ?? 0));
 
   return (
@@ -32,7 +34,11 @@ export default async function MonitoringPage() {
         </div>
         <div className="card">
           <div className="label">Equity Curve (180D)</div>
-          <MiniChart points={equitySeries.length ? equitySeries : [10000, 10150, 10220, 10180, 10340]} stroke="#c95c3c" />
+          {equitySeries.length ? (
+            <MiniChart points={equitySeries} stroke="#c95c3c" />
+          ) : (
+            <p className="footer-note">Equity curve appears after model runs complete.</p>
+          )}
         </div>
       </div>
       <div className="card">

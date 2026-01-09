@@ -1,7 +1,8 @@
 import { getTransactions } from '../../lib/api';
 
 export default async function TransactionsPage() {
-  const trades = await getTransactions('limit=50');
+  const tradesResponse = await getTransactions('limit=50');
+  const trades = Array.isArray(tradesResponse) ? tradesResponse : [];
 
   return (
     <section className="grid">

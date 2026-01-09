@@ -5,27 +5,33 @@ import { SignalBadge } from '../components/signal-badge';
 export default async function CurrentPortfolioPage() {
   const data = await getCurrentPortfolio();
   const perf = await getPerformance('30d');
-  const trades = await getTrades(20);
-  const weightsCurrent = data.state?.weights_current ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
-  const weightsTarget = data.state?.weights_target ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
-  const equitySeries = [10000, 10050, 10120, 10080, 10240, 10310, 10420, 10390];
+  const tradesResponse = await getTrades(20);
+  const trades = Array.isArray(tradesResponse) ? tradesResponse : [];
+  const weightsCurrent = data?.state?.weights_current ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
+  const weightsTarget = data?.state?.weights_target ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
+  const equitySeries: number[] = [];
+  const signals = Array.isArray(data?.signals) ? data?.signals : [];
 
   return (
     <section className="grid">
       <div className="grid cols-3">
         <div className="card">
           <div className="label">Total Equity</div>
-          <div className="stat">${Number(data.state?.total_equity_usd ?? 10000).toLocaleString()}</div>
-          <div className="pill">As of {new Date(data.state?.tick_id ?? Date.now()).toISOString()}</div>
+          <div className="stat">${Number(data?.state?.total_equity_usd ?? 0).toLocaleString()}</div>
+          <div className="pill">As of {data?.state?.tick_id ?? '—'}</div>
         </div>
         <div className="card">
           <div className="label">30D Return</div>
-          <div className="stat">{(Number(perf.metrics?.return_pct ?? 0) * 100).toFixed(2)}%</div>
-          <MiniChart points={equitySeries} />
+          <div className="stat">{(Number(perf?.metrics?.return_pct ?? 0) * 100).toFixed(2)}%</div>
+          {equitySeries.length > 0 ? (
+            <MiniChart points={equitySeries} />
+          ) : (
+            <p className="footer-note">Equity curve will appear after multiple ticks.</p>
+          )}
         </div>
         <div className="card">
           <div className="label">LLM Commentary</div>
-          <p>{data.llm?.content ?? 'No commentary yet.'}</p>
+          <p>{data?.llm?.content ?? 'No commentary yet.'}</p>
         </div>
       </div>
 
@@ -63,7 +69,7 @@ export default async function CurrentPortfolioPage() {
               </tr>
             </thead>
             <tbody>
-              {data.signals.map((signal: any) => (
+              {signals.map((signal: any) => (
                 <tr key={signal.symbol}>
                   <td>{signal.symbol}</td>
                   <td><SignalBadge signal={signal.signal} /></td>

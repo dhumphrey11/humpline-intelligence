@@ -1,0 +1,80 @@
+name: Deploy Services
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - services/**
+      - shared/**
+      - db/**
+      - cloudbuild/**
+      - .github/workflows/deploy-services.yml
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: humpline-intelligence
+  REGION: us-central1
+
+jobs:
+  deploy-services:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Build images
+        run: |
+          gcloud builds submit --config=cloudbuild/ingestion-service.yaml --project "${PROJECT_ID}"
+          gcloud builds submit --config=cloudbuild/model-runner.yaml --project "${PROJECT_ID}"
+          gcloud builds submit --config=cloudbuild/metrics-service.yaml --project "${PROJECT_ID}"
+          gcloud builds submit --config=cloudbuild/llm-commentary-service.yaml --project "${PROJECT_ID}"
+          gcloud builds submit --config=cloudbuild/tick-orchestrator.yaml --project "${PROJECT_ID}"
+          gcloud builds submit --config=cloudbuild/api-service.yaml --project "${PROJECT_ID}"
+
+      - name: Deploy services
+        run: |
+          gcloud run deploy ingestion-service \
+            --image "us-central1-docker.pkg.dev/${PROJECT_ID}/humpline/ingestion-service:latest" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --quiet
+          gcloud run deploy model-runner \
+            --image "us-central1-docker.pkg.dev/${PROJECT_ID}/humpline/model-runner:latest" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --quiet
+          gcloud run deploy metrics-service \
+            --image "us-central1-docker.pkg.dev/${PROJECT_ID}/humpline/metrics-service:latest" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --quiet
+          gcloud run deploy llm-commentary-service \
+            --image "us-central1-docker.pkg.dev/${PROJECT_ID}/humpline/llm-commentary-service:latest" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --quiet
+          gcloud run deploy tick-orchestrator \
+            --image "us-central1-docker.pkg.dev/${PROJECT_ID}/humpline/tick-orchestrator:latest" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --quiet
+          gcloud run deploy api-service \
+            --image "us-central1-docker.pkg.dev/${PROJECT_ID}/humpline/api-service:latest" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --quiet

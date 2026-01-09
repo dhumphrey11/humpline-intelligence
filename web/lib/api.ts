@@ -1,5 +1,10 @@
 const API_BASE = process.env.API_BASE ?? 'http://localhost:8085';
 
+export type CurrentUser = {
+  email: string | null;
+  role: 'admin' | 'guest';
+};
+
 async function safeFetch<T>(path: string): Promise<T | null> {
   try {
     const response = await fetch(`${API_BASE}${path}`, { next: { revalidate: 30 } });
@@ -52,6 +57,6 @@ export async function getApiHealth() {
   return safeFetch('/health');
 }
 
-export async function getCurrentUser() {
-  return safeFetch('/api/me');
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  return safeFetch<CurrentUser>('/api/me');
 }

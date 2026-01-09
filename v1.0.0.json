@@ -1,0 +1,41 @@
+{
+  "model_id": "1.0.0",
+  "model_name": "T1 OHLCV MVP",
+  "is_active": true,
+  "is_contender": false,
+  "universe": ["BTC", "ETH", "ADA"],
+  "decision_frequency": "6h",
+  "factor_config": {
+    "trend_weight": 0.45,
+    "momentum_weight": 0.35,
+    "vol_weight": 0.2,
+    "signal_threshold_buy": 0.2,
+    "signal_threshold_sell": -0.2
+  },
+  "exec_config": {
+    "paper_only": true,
+    "order_type": "MARKET",
+    "rebalance_band": 0.05,
+    "min_trade_usd": 200,
+    "cooldown_cycles": 1,
+    "high_urgency_conf": 85,
+    "fee_bps": 10,
+    "slippage_bps": {
+      "BTC": 5,
+      "ETH": 5,
+      "ADA": 10
+    }
+  },
+  "data_config": {
+    "source": "coinbase",
+    "storage_timeframe": "1h",
+    "derived_timeframes": ["6h", "1d"],
+    "candle_ts": "close_time",
+    "timezone": "UTC",
+    "warmup": {
+      "min_1d_days": 240,
+      "min_6h_bars": 180
+    }
+  },
+  "notes": "Locked production model for MVP"
+}

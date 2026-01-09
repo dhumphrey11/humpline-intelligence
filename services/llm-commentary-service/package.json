@@ -1,0 +1,24 @@
+{
+  "name": "@humpline/llm-commentary-service",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "node --watch dist/index.js",
+    "lint": "echo 'no lint configured'",
+    "test": "echo 'no tests'"
+  },
+  "dependencies": {
+    "@humpline/shared": "*",
+    "express": "^4.19.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.2",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.4.5"
+  }
+}

@@ -213,6 +213,12 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+app.get('/api/me', (req, res) => {
+  const header = req.headers['x-goog-authenticated-user-email'] as string | undefined;
+  const email = header ? header.split(':').pop() : null;
+  res.status(200).json({ email });
+});
+
 const port = Number(process.env.PORT ?? 8085);
 app.listen(port, () => {
   console.log(`api-service listening on ${port}`);

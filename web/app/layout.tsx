@@ -1,13 +1,16 @@
 import './globals.css';
 import type { ReactNode } from 'react';
 import { Navigation } from '../components/navigation';
+import { getCurrentUser } from '../lib/api';
 
 export const metadata = {
   title: 'humpline-intelligence',
   description: 'Automated crypto portfolio research console'
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const user = await getCurrentUser();
+  const email = user?.email ?? 'guest';
   return (
     <html lang="en">
       <body>
@@ -19,7 +22,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="user-chip">
               <span className="user-dot" />
-              <span>dhumphrey11@gmail.com</span>
+              <span>{email}</span>
             </div>
           </header>
           <Navigation />

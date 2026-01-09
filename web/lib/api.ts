@@ -51,3 +51,7 @@ export async function getAdminHealth() {
 export async function getApiHealth() {
   return safeFetch('/health');
 }
+
+export async function getCurrentUser() {
+  return safeFetch('/api/me');
+}

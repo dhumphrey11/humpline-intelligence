@@ -15,6 +15,39 @@ export type ApiHealth = {
   status: string;
 };
 
+export type PortfolioState = {
+  tick_id: string;
+  total_equity_usd: number;
+  weights_current: Record<string, number>;
+  weights_target: Record<string, number>;
+};
+
+export type PortfolioSignal = {
+  symbol: string;
+  signal: string;
+  asset_score: number;
+  confidence: number;
+};
+
+export type PortfolioResponse = {
+  state: PortfolioState;
+  signals: PortfolioSignal[];
+  llm?: { content: string };
+};
+
+export type PerformanceResponse = {
+  metrics: { return_pct: number };
+};
+
+export type Trade = {
+  trade_id: string;
+  ts: string;
+  symbol: string;
+  side: string;
+  qty: number;
+  notional_usd: number;
+};
+
 async function safeFetch<T>(path: string): Promise<T | null> {
   try {
     const response = await fetch(`${API_BASE}${path}`, { next: { revalidate: 30 } });
@@ -27,16 +60,16 @@ async function safeFetch<T>(path: string): Promise<T | null> {
   }
 }
 
-export async function getCurrentPortfolio() {
-  return safeFetch('/api/portfolio/current');
+export async function getCurrentPortfolio(): Promise<PortfolioResponse | null> {
+  return safeFetch<PortfolioResponse>('/api/portfolio/current');
 }
 
-export async function getPerformance(range: string) {
-  return safeFetch(`/api/portfolio/performance?range=${range}`);
+export async function getPerformance(range: string): Promise<PerformanceResponse | null> {
+  return safeFetch<PerformanceResponse>(`/api/portfolio/performance?range=${range}`);
 }
 
-export async function getTrades(limit = 20) {
-  return safeFetch(`/api/portfolio/transactions?limit=${limit}`);
+export async function getTrades(limit = 20): Promise<Trade[] | null> {
+  return safeFetch<Trade[]>(`/api/portfolio/transactions?limit=${limit}`);
 }
 
 export async function getModels() {

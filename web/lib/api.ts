@@ -5,6 +5,16 @@ export type CurrentUser = {
   role: 'admin' | 'guest';
 };
 
+export type AdminHealth = {
+  ticks: Array<{ tick_id: string; status: string }>;
+  ingestion_runs: Array<{ run_id: string; started_at: string; status: string }>;
+  last_candles: Array<{ symbol: string; last_ts: string }>;
+};
+
+export type ApiHealth = {
+  status: string;
+};
+
 async function safeFetch<T>(path: string): Promise<T | null> {
   try {
     const response = await fetch(`${API_BASE}${path}`, { next: { revalidate: 30 } });
@@ -49,12 +59,12 @@ export async function getTransactions(filters: string) {
   return safeFetch(`/api/trades?${filters}`);
 }
 
-export async function getAdminHealth() {
-  return safeFetch('/api/admin/system/health');
+export async function getAdminHealth(): Promise<AdminHealth | null> {
+  return safeFetch<AdminHealth>('/api/admin/system/health');
 }
 
-export async function getApiHealth() {
-  return safeFetch('/health');
+export async function getApiHealth(): Promise<ApiHealth | null> {
+  return safeFetch<ApiHealth>('/health');
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {

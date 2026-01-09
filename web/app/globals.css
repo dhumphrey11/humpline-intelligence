@@ -199,6 +199,18 @@ main {
   height: 160px;
 }
 
+.login {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 40px);
+}
+
+.login-card {
+  max-width: 360px;
+  text-align: center;
+  gap: 12px;
+}
+
 .footer-note {
   font-size: 0.85rem;
   color: var(--muted);

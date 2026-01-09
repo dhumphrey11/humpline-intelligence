@@ -1,4 +1,5 @@
 import express from 'express';
+import { OAuth2Client } from 'google-auth-library';
 import { query, withTransaction } from '@humpline/shared';
 
 const app = express();
@@ -6,6 +7,8 @@ app.use(express.json());
 
 const ADMIN_BYPASS = process.env.ADMIN_BYPASS === 'true';
 const ADMIN_EMAILS = new Set(['dhumphrey11@gmail.com', 'trevorjames.snow@gmail.com']);
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
+const authClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 function extractEmail(header?: string) {
   if (!header) {
@@ -15,13 +18,52 @@ function extractEmail(header?: string) {
   return value ?? null;
 }
 
-function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+async function verifyBearerToken(token?: string) {
+  if (!token || !GOOGLE_CLIENT_ID) {
+    return null;
+  }
+  try {
+    const ticket = await authClient.verifyIdToken({
+      idToken: token,
+      audience: GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    return payload?.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function getRequestEmail(req: express.Request) {
+  const iapHeader = req.headers['x-goog-authenticated-user-email'] as string | undefined;
+  const iapEmail = extractEmail(iapHeader);
+  if (iapEmail) {
+    return iapEmail;
+  }
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice('Bearer '.length).trim();
+    return await verifyBearerToken(token);
+  }
+  return null;
+}
+
+async function requireUser(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const email = await getRequestEmail(req);
+  if (!email) {
+    res.status(401).json({ error: 'authentication required' });
+    return;
+  }
+  res.locals.userEmail = email;
+  next();
+}
+
+async function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (ADMIN_BYPASS) {
     next();
     return;
   }
-  const header = req.headers['x-goog-authenticated-user-email'] as string | undefined;
-  const email = extractEmail(header);
+  const email = (res.locals.userEmail as string | undefined) ?? (await getRequestEmail(req));
   if (!email || !ADMIN_EMAILS.has(email)) {
     res.status(403).json({ error: 'admin access required' });
     return;
@@ -33,6 +75,8 @@ async function getActiveModelId() {
   const result = await query<{ model_id: string }>('SELECT model_id FROM models WHERE is_active = true LIMIT 1');
   return result.rows[0]?.model_id ?? null;
 }
+
+app.use('/api', requireUser);
 
 app.get('/api/models', async (_req, res) => {
   const models = await query('SELECT * FROM models ORDER BY created_at DESC');
@@ -224,8 +268,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/api/me', (req, res) => {
-  const header = req.headers['x-goog-authenticated-user-email'] as string | undefined;
-  const email = extractEmail(header);
+  const email = (res.locals.userEmail as string | undefined) ?? null;
   const role = email && ADMIN_EMAILS.has(email) ? 'admin' : 'guest';
   res.status(200).json({ email, role });
 });

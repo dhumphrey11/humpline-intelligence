@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers';
+
 const API_BASE = process.env.API_BASE ?? 'http://localhost:8085';
 
 export type CurrentUser = {
@@ -48,9 +50,22 @@ export type Trade = {
   notional_usd: number;
 };
 
+function getAuthHeaders() {
+  try {
+    // Server-only access to the auth cookie for API calls.
+    const token = cookies().get('humpline_id_token')?.value;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function safeFetch<T>(path: string): Promise<T | null> {
   try {
-    const response = await fetch(`${API_BASE}${path}`, { next: { revalidate: 30 } });
+    const response = await fetch(`${API_BASE}${path}`, {
+      next: { revalidate: 30 },
+      headers: getAuthHeaders()
+    });
     if (!response.ok) {
       return null;
     }

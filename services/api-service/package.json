@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@humpline/shared": "*",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "google-auth-library": "^9.15.1"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

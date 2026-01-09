@@ -1,6 +1,20 @@
-import { getAdminHealth, getApiHealth } from '../../lib/api';
+import { getAdminHealth, getApiHealth, getCurrentUser } from '../../lib/api';
 
 export default async function AdminPage() {
+  const user = await getCurrentUser();
+  const role = user?.role ?? 'guest';
+  if (role !== 'admin') {
+    return (
+      <section className="grid">
+        <div className="card">
+          <div className="label">Admin Access</div>
+          <div className="stat">Access denied</div>
+          <p className="footer-note">You are signed in as a guest.</p>
+        </div>
+      </section>
+    );
+  }
+
   const healthResponse = await getAdminHealth();
   const health = healthResponse ?? { ticks: [], ingestion_runs: [], last_candles: [] };
   const apiHealth = await getApiHealth();

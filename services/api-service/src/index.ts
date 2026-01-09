@@ -5,6 +5,15 @@ const app = express();
 app.use(express.json());
 
 const ADMIN_BYPASS = process.env.ADMIN_BYPASS === 'true';
+const ADMIN_EMAILS = new Set(['dhumphrey11@gmail.com', 'trevorjames.snow@gmail.com']);
+
+function extractEmail(header?: string) {
+  if (!header) {
+    return null;
+  }
+  const value = header.includes(':') ? header.split(':').pop() : header;
+  return value ?? null;
+}
 
 function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (ADMIN_BYPASS) {
@@ -12,8 +21,9 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
     return;
   }
   const header = req.headers['x-goog-authenticated-user-email'] as string | undefined;
-  if (!header) {
-    res.status(401).json({ error: 'admin auth required' });
+  const email = extractEmail(header);
+  if (!email || !ADMIN_EMAILS.has(email)) {
+    res.status(403).json({ error: 'admin access required' });
     return;
   }
   next();
@@ -215,8 +225,9 @@ app.get('/health', (_req, res) => {
 
 app.get('/api/me', (req, res) => {
   const header = req.headers['x-goog-authenticated-user-email'] as string | undefined;
-  const email = header ? header.split(':').pop() : null;
-  res.status(200).json({ email });
+  const email = extractEmail(header);
+  const role = email && ADMIN_EMAILS.has(email) ? 'admin' : 'guest';
+  res.status(200).json({ email, role });
 });
 
 const port = Number(process.env.PORT ?? 8085);

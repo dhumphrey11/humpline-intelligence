@@ -33,25 +33,25 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
 
       - name: Build ingestion-service
-        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/ingestion-service.yaml
+        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/ingestion-service.yaml --suppress-logs
 
       - name: Build model-runner
-        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/model-runner.yaml
+        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/model-runner.yaml --suppress-logs
 
       - name: Build metrics-service
-        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/metrics-service.yaml
+        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/metrics-service.yaml --suppress-logs
 
       - name: Build llm-commentary-service
-        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/llm-commentary-service.yaml
+        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/llm-commentary-service.yaml --suppress-logs
 
       - name: Build api-service
-        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/api-service.yaml
+        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/api-service.yaml --suppress-logs
 
       - name: Build tick-orchestrator
-        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/tick-orchestrator.yaml
+        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/tick-orchestrator.yaml --suppress-logs
 
       - name: Build web
-        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/web.yaml
+        run: gcloud builds submit . --region=${{ env.REGION }} --config cloudbuild/web.yaml --suppress-logs
 
       - name: Deploy ingestion-service
         run: |

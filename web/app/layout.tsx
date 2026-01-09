@@ -12,12 +12,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <main className="layout">
-          <header className="hero">
-            <div className="pill">Paper trading research console</div>
-            <h1>humpline-intelligence</h1>
-            <p>Signal-driven portfolio allocator for BTC, ETH, ADA. UTC-timed ticks, frozen candles, and transparent model audits.</p>
-            <Navigation />
+          <header className="topbar">
+            <div>
+              <div className="app-title">humpline-intelligence</div>
+              <div className="app-subtitle">Paper trading research console</div>
+            </div>
+            <div className="user-chip">
+              <span className="user-dot" />
+              <span>dhumphrey11@gmail.com</span>
+            </div>
           </header>
+          <Navigation />
           {children}
           <p className="footer-note">UTC timestamps · Candle close times · Cloud Run MVP</p>
         </main>

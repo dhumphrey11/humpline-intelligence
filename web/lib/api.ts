@@ -54,9 +54,12 @@ function getAuthHeaders() {
   try {
     // Server-only access to the auth cookie for API calls.
     const token = cookies().get('humpline_id_token')?.value;
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    if (!token) {
+      return undefined;
+    }
+    return { Authorization: `Bearer ${token}` } as Record<string, string>;
   } catch {
-    return {};
+    return undefined;
   }
 }
 

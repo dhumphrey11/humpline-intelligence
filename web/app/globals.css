@@ -211,6 +211,11 @@ main {
   gap: 12px;
 }
 
+.login-button {
+  display: flex;
+  justify-content: center;
+}
+
 .footer-note {
   font-size: 0.85rem;
   color: var(--muted);

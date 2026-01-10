@@ -83,7 +83,7 @@ export default function LoginPage() {
         <div className="label">Sign in required</div>
         <div className="stat">humpline-intelligence</div>
         <p>Use your Google account to access the console.</p>
-        <div ref={buttonRef} />
+        <div className="login-button" ref={buttonRef} />
         {error ? <p className="footer-note">{error}</p> : null}
       </section>
     </main>

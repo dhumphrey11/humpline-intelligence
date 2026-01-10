@@ -6,7 +6,9 @@ import { useTransition } from 'react';
 import { Navigation } from './navigation';
 import { UtcClock } from './utc-clock';
 
-export function AppShell({ children, email }: { children: ReactNode; email: string }) {
+type Prices = Record<string, { ts: string; close: string }>;
+
+export function AppShell({ children, email, prices }: { children: ReactNode; email: string; prices?: Prices }) {
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
   const isGuest = !email || email === 'guest';
@@ -29,6 +31,11 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
         <div>
           <div className="app-title">humpline-intelligence</div>
           <div className="app-subtitle">Paper trading research console</div>
+        </div>
+        <div className="pill-row">
+          <div className="pill">BTC: {prices?.BTC ? `$${Number(prices.BTC.close).toFixed(2)}` : 'n/a'}</div>
+          <div className="pill">ETH: {prices?.ETH ? `$${Number(prices.ETH.close).toFixed(2)}` : 'n/a'}</div>
+          <div className="pill">ADA: {prices?.ADA ? `$${Number(prices.ADA.close).toFixed(4)}` : 'n/a'}</div>
         </div>
         <UtcClock />
         <div className="user-chip">

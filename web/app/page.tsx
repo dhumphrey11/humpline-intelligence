@@ -1,4 +1,4 @@
-import { getAdminHealth, getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates, getAdminDataOverview, getActionLogs } from '../lib/api';
+import { getAdminHealth, getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates, getActionLogs } from '../lib/api';
 import { MiniChart } from '../components/mini-chart';
 import { SignalBadge } from '../components/signal-badge';
 import { formatUtc } from '../lib/format';
@@ -8,13 +8,12 @@ function formatPct(value: number) {
 }
 
 export default async function DashboardPage() {
-  const [portfolio, perf, recentStatesRaw, tradesResponse, health, dataOverview, actionLogs] = await Promise.all([
+  const [portfolio, perf, recentStatesRaw, tradesResponse, health, actionLogs] = await Promise.all([
     getCurrentPortfolio(),
     getPerformance('30d'),
     getPortfolioStates(5),
     getTrades(20),
     getAdminHealth(),
-    getAdminDataOverview(),
     getActionLogs()
   ]);
 
@@ -25,16 +24,6 @@ export default async function DashboardPage() {
   const signals = Array.isArray(portfolio?.signals) ? portfolio?.signals : [];
   const holdings = portfolio?.state?.holdings ?? {};
   const equity = Number(portfolio?.state?.total_equity_usd ?? 0);
-  const latestPrices = Array.isArray(dataOverview?.recent_candles)
-    ? dataOverview.recent_candles.reduce<Record<string, { ts: string; close: string }>>((acc, row) => {
-        const existing = acc[row.symbol];
-        if (!existing || new Date(row.ts).getTime() > new Date(existing.ts).getTime()) {
-          acc[row.symbol] = { ts: row.ts, close: row.close };
-        }
-        return acc;
-      }, {})
-    : {};
-
   return (
     <section className="grid">
       <div className="grid cols-4">
@@ -51,13 +40,6 @@ export default async function DashboardPage() {
           <div className="label">Health</div>
           <p className="footer-note">Latest tick: {health?.ticks?.[0]?.status ?? '—'} @ {formatUtc(health?.ticks?.[0]?.tick_id)}</p>
           <p className="footer-note">Latest ingestion: {health?.ingestion_runs?.[0]?.status ?? '—'} @ {formatUtc(health?.ingestion_runs?.[0]?.started_at)}</p>
-        </div>
-        <div className="card">
-          <div className="label">Latest Prices</div>
-          <p className="footer-note">From most recent ingestion @ {formatUtc(latestPrices.BTC?.ts ?? latestPrices.ETH?.ts ?? latestPrices.ADA?.ts)}</p>
-          <div className="pill">BTC: {latestPrices.BTC ? `$${Number(latestPrices.BTC.close).toFixed(2)}` : 'n/a'}</div>
-          <div className="pill">ETH: {latestPrices.ETH ? `$${Number(latestPrices.ETH.close).toFixed(2)}` : 'n/a'}</div>
-          <div className="pill">ADA: {latestPrices.ADA ? `$${Number(latestPrices.ADA.close).toFixed(4)}` : 'n/a'}</div>
         </div>
       </div>
       <div className="grid cols-2">

@@ -14,7 +14,11 @@ export function TriggerTick() {
       const response = await fetch('/api/admin/tick/run', { method: 'POST' });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        setError(body?.error ?? `Failed: ${response.status}`);
+        if (body?.missing) {
+          setError(`Missing data for: ${body.missing.join(', ')}`);
+        } else {
+          setError(body?.error ?? `Failed: ${response.status}`);
+        }
         return;
       }
       const body = await response.json().catch(() => null);

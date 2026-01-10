@@ -63,7 +63,13 @@ app.post('/tick/run', async (req, res) => {
   const missing = await checkDataCompleteness(tickId);
   if (missing.length > 0) {
     await setTickStatus(tickId, 'FAILED', `Missing candles for: ${missing.join(', ')}`);
-    res.status(400).json({ tick_id: tickId.toISOString(), status: 'FAILED', missing });
+    console.error('tick run blocked due to missing candles', { tick: tickId.toISOString(), missing });
+    res.status(400).json({
+      tick_id: tickId.toISOString(),
+      status: 'FAILED',
+      error: 'missing_candles',
+      missing
+    });
     return;
   }
 

@@ -10,6 +10,10 @@ const ADMIN_EMAILS = new Set(['dhumphrey11@gmail.com', 'trevorjames.snow@gmail.c
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
 const authClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
+type AppSettings = {
+  test_mode: boolean;
+};
+
 function extractEmail(header?: string) {
   if (!header) {
     return null;
@@ -74,6 +78,24 @@ async function requireAdmin(req: express.Request, res: express.Response, next: e
 async function getActiveModelId() {
   const result = await query<{ model_id: string }>('SELECT model_id FROM models WHERE is_active = true LIMIT 1');
   return result.rows[0]?.model_id ?? null;
+}
+
+async function getSettings(): Promise<AppSettings> {
+  const result = await query<{ value: { enabled: boolean } }>(
+    'SELECT value FROM app_settings WHERE key = $1 LIMIT 1',
+    ['test_mode']
+  );
+  const enabled = result.rows[0]?.value?.enabled ?? false;
+  return { test_mode: enabled };
+}
+
+async function setTestMode(enabled: boolean) {
+  await query(
+    `INSERT INTO app_settings (key, value, updated_at)
+     VALUES ('test_mode', $1, now())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+    [{ enabled }]
+  );
 }
 
 app.use('/api', requireUser);
@@ -256,11 +278,24 @@ app.get('/api/admin/system/health', requireAdmin, async (_req, res) => {
   const lastCandles = await query(
     `SELECT symbol, MAX(ts) as last_ts FROM candles WHERE timeframe = '1h' AND source = 'coinbase' GROUP BY symbol`
   );
+  const settings = await getSettings();
   res.status(200).json({
     ticks: ticks.rows,
     ingestion_runs: ingestion.rows,
-    last_candles: lastCandles.rows
+    last_candles: lastCandles.rows,
+    settings
   });
+});
+
+app.get('/api/admin/settings', requireAdmin, async (_req, res) => {
+  const settings = await getSettings();
+  res.status(200).json(settings);
+});
+
+app.post('/api/admin/settings/test_mode', requireAdmin, async (req, res) => {
+  const enabled = Boolean(req.body?.enabled);
+  await setTestMode(enabled);
+  res.status(200).json({ test_mode: enabled });
 });
 
 app.get('/api/admin/data/overview', requireAdmin, async (_req, res) => {

@@ -1,4 +1,5 @@
-import { getAdminHealth, getApiHealth, getCurrentUser } from '../../lib/api';
+import { getAdminHealth, getAdminSettings, getApiHealth, getCurrentUser } from '../../lib/api';
+import { TestModeToggle } from '../../components/test-mode-toggle';
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -20,6 +21,7 @@ export default async function AdminPage() {
   const apiHealth = await getApiHealth();
   const latestTick = health.ticks[0];
   const latestIngestion = health.ingestion_runs[0];
+  const settings = (await getAdminSettings()) ?? { test_mode: false };
 
   return (
     <section className="grid">
@@ -39,6 +41,11 @@ export default async function AdminPage() {
           <div className="stat">{latestIngestion?.status ?? '—'}</div>
           <p className="footer-note">{latestIngestion?.started_at ?? 'No runs yet'}</p>
         </div>
+      </div>
+      <div className="card">
+        <div className="label">Environment Mode</div>
+        <p className="footer-note">Toggle test/production. Test mode routes notifications only to dhumphrey11@gmail.com and skips LLM calls.</p>
+        <TestModeToggle initialEnabled={settings.test_mode} />
       </div>
       <div className="grid cols-2">
         <div className="card">

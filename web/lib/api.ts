@@ -11,10 +11,15 @@ export type AdminHealth = {
   ticks: Array<{ tick_id: string; status: string }>;
   ingestion_runs: Array<{ run_id: string; started_at: string; status: string }>;
   last_candles: Array<{ symbol: string; last_ts: string }>;
+  settings?: AdminSettings;
 };
 
 export type ApiHealth = {
   status: string;
+};
+
+export type AdminSettings = {
+  test_mode: boolean;
 };
 
 export type AdminDataOverview = {
@@ -155,6 +160,29 @@ export async function getAdminHealth(): Promise<AdminHealth | null> {
 
 export async function getAdminDataOverview(): Promise<AdminDataOverview | null> {
   return safeFetch<AdminDataOverview>('/api/admin/data/overview');
+}
+
+export async function getAdminSettings(): Promise<AdminSettings | null> {
+  return safeFetch<AdminSettings>('/api/admin/settings');
+}
+
+export async function setTestMode(enabled: boolean): Promise<AdminSettings | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/settings/test_mode`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(getAuthHeaders() ?? {})
+      } as HeadersInit,
+      body: JSON.stringify({ enabled })
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as AdminSettings;
+  } catch {
+    return null;
+  }
 }
 
 export async function getApiHealth(): Promise<ApiHealth | null> {

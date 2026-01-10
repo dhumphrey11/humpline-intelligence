@@ -11,6 +11,7 @@ const SMTP_USER = process.env.SMTP_USER ?? '';
 const SMTP_PASS = process.env.SMTP_PASS ?? '';
 const NOTIFY_TO = process.env.NOTIFY_TO ?? '';
 const NOTIFY_FROM = process.env.NOTIFY_FROM ?? SMTP_USER;
+const TEST_EMAIL = 'dhumphrey11@gmail.com';
 
 function parseRecipients(value: string) {
   return value
@@ -35,7 +36,15 @@ async function getActiveModelId() {
   return result.rows[0]?.model_id ?? null;
 }
 
-async function sendEmail(subject: string, text: string) {
+async function getTestMode(): Promise<boolean> {
+  const result = await query<{ value: { enabled: boolean } }>(
+    'SELECT value FROM app_settings WHERE key = $1 LIMIT 1',
+    ['test_mode']
+  );
+  return result.rows[0]?.value?.enabled ?? false;
+}
+
+async function sendEmail(subject: string, text: string, recipients: string[]) {
   if (!SMTP_USER || !SMTP_PASS || !NOTIFY_TO) {
     throw new Error('SMTP credentials or recipients not configured');
   }
@@ -48,7 +57,6 @@ async function sendEmail(subject: string, text: string) {
       pass: SMTP_PASS
     }
   });
-  const recipients = parseRecipients(NOTIFY_TO);
   await transporter.sendMail({
     from: NOTIFY_FROM,
     to: recipients,
@@ -115,10 +123,14 @@ app.post('/notify/allocations', async (req, res) => {
     return;
   }
 
-  const subject = `Allocation change (${modelId}) @ ${new Date(tickId).toISOString()}`;
+  const testMode = await getTestMode();
+  const baseRecipients = parseRecipients(NOTIFY_TO);
+  const recipients = testMode ? [TEST_EMAIL] : baseRecipients;
+  const subject = `${testMode ? '[TEST]' : ''} Allocation change (${modelId}) @ ${new Date(tickId).toISOString()}`;
   const text = [
     `Model: ${modelId}`,
     `Tick: ${new Date(tickId).toISOString()}`,
+    `Test mode: ${testMode}`,
     '',
     'Previous target weights:',
     JSON.stringify(previousWeights, null, 2),
@@ -128,8 +140,8 @@ app.post('/notify/allocations', async (req, res) => {
   ].join('\n');
 
   try {
-    await sendEmail(subject, text);
-    res.status(200).json({ status: 'sent', model_id: modelId, tick_id: tickId });
+    await sendEmail(subject, text, recipients);
+    res.status(200).json({ status: 'sent', model_id: modelId, tick_id: tickId, test_mode: testMode });
   } catch (error: any) {
     res.status(500).json({ status: 'failed', error: error?.message ?? 'send failed' });
   }

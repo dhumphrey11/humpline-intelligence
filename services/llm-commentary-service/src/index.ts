@@ -10,6 +10,14 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? '';
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
 const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 
+async function getTestMode(): Promise<boolean> {
+  const result = await query<{ value: { enabled: boolean } }>(
+    'SELECT value FROM app_settings WHERE key = $1 LIMIT 1',
+    ['test_mode']
+  );
+  return result.rows[0]?.value?.enabled ?? false;
+}
+
 async function fetchContext(modelId: string, tickId: string) {
   const signals = await query<{
     symbol: string;
@@ -83,7 +91,9 @@ app.post('/llm/generate', async (req, res) => {
   let content = `LLM commentary placeholder for model ${model_id} at ${tick_id}.`;
   let flags: Record<string, any> = { source: 'placeholder', caution: true };
 
-  if (openai && hasSignals) {
+  const testMode = await getTestMode();
+
+  if (!testMode && openai && hasSignals) {
     try {
       const completion = await openai.chat.completions.create({
         model: OPENAI_MODEL,
@@ -100,6 +110,9 @@ app.post('/llm/generate', async (req, res) => {
       content = `LLM commentary failed: ${error?.message ?? 'unknown error'}`;
       flags = { source: 'openai', caution: true, error: true };
     }
+  } else if (testMode) {
+    content = `Test mode active: LLM call skipped for model ${model_id} at ${tick_id}.`;
+    flags = { source: 'openai', model: OPENAI_MODEL, caution: true, test_mode: true };
   }
 
   await query(

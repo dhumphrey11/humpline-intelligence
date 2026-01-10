@@ -13,6 +13,7 @@
   "dependencies": {
     "@humpline/shared": "*",
     "express": "^4.19.2",
+    "openai": "^4.77.4",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

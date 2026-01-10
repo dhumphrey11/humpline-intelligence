@@ -322,6 +322,10 @@ main {
   text-decoration: underline;
 }
 
+.pill .pill-close {
+  margin-left: 4px;
+}
+
 .footer-note {
   font-size: 0.85rem;
   color: var(--muted);

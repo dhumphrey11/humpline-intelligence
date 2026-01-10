@@ -8,6 +8,7 @@ app.use(express.json());
 const MODEL_RUNNER_URL = process.env.MODEL_RUNNER_URL ?? 'http://localhost:8082';
 const METRICS_SERVICE_URL = process.env.METRICS_SERVICE_URL ?? 'http://localhost:8083';
 const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL ?? 'http://localhost:8084';
+const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:8086';
 
 async function ensureTickRow(tickId: Date) {
   await query(
@@ -102,6 +103,18 @@ app.post('/tick/run', async (req, res) => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ model_id: activeModelId, tick_id: tickId.toISOString() })
       });
+    }
+
+    if (activeModelId) {
+      try {
+        await fetch(`${NOTIFICATION_SERVICE_URL}/notify/allocations`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ model_id: activeModelId, tick_id: tickId.toISOString() })
+        });
+      } catch (error) {
+        console.error('notification-service failed', error);
+      }
     }
 
     await setTickStatus(tickId, 'COMPLETE');

@@ -45,6 +45,7 @@ jobs:
           gcloud builds submit --config=cloudbuild/llm-commentary-service.yaml --project "${PROJECT_ID}"
           gcloud builds submit --config=cloudbuild/tick-orchestrator.yaml --project "${PROJECT_ID}"
           gcloud builds submit --config=cloudbuild/api-service.yaml --project "${PROJECT_ID}"
+          gcloud builds submit --config=cloudbuild/notification-service.yaml --project "${PROJECT_ID}"
 
       - name: Deploy services
         run: |
@@ -75,6 +76,11 @@ jobs:
             --quiet
           gcloud run deploy api-service \
             --image "us-central1-docker.pkg.dev/${PROJECT_ID}/humpline/api-service:latest" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --quiet
+          gcloud run deploy notification-service \
+            --image "us-central1-docker.pkg.dev/${PROJECT_ID}/humpline/notification-service:latest" \
             --region "${REGION}" \
             --project "${PROJECT_ID}" \
             --quiet

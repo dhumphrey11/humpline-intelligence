@@ -204,12 +204,25 @@ app.get('/api/portfolio/states', async (req, res) => {
   const portfolioId = `paper_${modelId}`;
   const limit = Number(req.query.limit ?? 5);
   const rows = await query(
-    `SELECT tick_id, weights_target, weights_current, holdings, total_equity_usd, cash_usd
-     FROM portfolio_states
-     WHERE portfolio_id = $1
-     ORDER BY tick_id DESC
-     LIMIT $2`,
-    [portfolioId, limit]
+    `SELECT ps.tick_id,
+            ps.weights_target,
+            ps.weights_current,
+            ps.holdings,
+            ps.total_equity_usd,
+            ps.cash_usd,
+            (
+              SELECT content
+              FROM llm_explanations le
+              WHERE le.model_id = $2
+                AND le.tick_id = ps.tick_id
+              ORDER BY le.created_at DESC
+              LIMIT 1
+            ) AS llm_content
+     FROM portfolio_states ps
+     WHERE ps.portfolio_id = $1
+     ORDER BY ps.tick_id DESC
+     LIMIT $3`,
+    [portfolioId, modelId, limit]
   );
   res.status(200).json(rows.rows);
 });

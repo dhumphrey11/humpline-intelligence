@@ -116,6 +116,7 @@ export default async function DashboardPage() {
               <tr>
                 <th>Tick</th>
                 <th>Weights</th>
+                <th>LLM Reasoning</th>
               </tr>
             </thead>
             <tbody>
@@ -123,6 +124,7 @@ export default async function DashboardPage() {
                 <tr key={`${row.tick_id ?? index}`}>
                   <td>{row.tick_id}</td>
                   <td>{JSON.stringify(row.weights_target)}</td>
+                  <td>{row.llm_content ?? '—'}</td>
                 </tr>
               ))}
             </tbody>

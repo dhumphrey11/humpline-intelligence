@@ -55,15 +55,18 @@ function buildPrompt(modelId: string, tickId: string, ctx: Awaited<ReturnType<ty
   const { signals, portfolio } = ctx;
   const weights = portfolio?.weights_target ?? {};
   const current = portfolio?.weights_current ?? {};
+  const signalLine = signals.length
+    ? signals
+        .map((s) => `${s.symbol}:${s.signal} score=${Number(s.asset_score ?? 0).toFixed(2)} conf=${s.confidence}`)
+        .join(' | ')
+    : 'none';
   const summaryLines = [
     `Model: ${modelId}`,
     `Tick: ${tickId}`,
     `Target weights: ${JSON.stringify(weights)}`,
     `Current weights: ${JSON.stringify(current)}`,
     `Total equity: ${portfolio?.total_equity_usd ?? 'n/a'}, Cash: ${portfolio?.cash_usd ?? 'n/a'}`,
-    `Signals: ${signals
-      .map((s) => `${s.symbol}:${s.signal} score=${s.asset_score.toFixed(2)} conf=${s.confidence}`)
-      .join(' | ')}`
+    `Signals: ${signalLine}`
   ].join('\n');
 
   const system = `You are a concise trading commentary generator. 

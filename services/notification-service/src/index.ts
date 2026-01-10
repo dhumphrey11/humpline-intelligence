@@ -64,7 +64,7 @@ async function getNotifyRecipients(): Promise<string[]> {
     ['notify_to']
   );
   const configured = result.rows[0]?.value?.emails ?? [];
-  return configured.length > 0 ? configured : parseRecipients(NOTIFY_TO);
+  return configured;
 }
 
 async function sendEmail(subject: string, text: string, recipients: string[]) {
@@ -146,6 +146,10 @@ app.post('/notify/allocations', async (req, res) => {
   const testMode = await getTestMode();
   const configuredRecipients = await getNotifyRecipients();
   const recipients = testMode ? [TEST_EMAIL] : configuredRecipients;
+  if (!recipients || recipients.length === 0) {
+    res.status(500).json({ status: 'failed', error: 'no notification recipients configured' });
+    return;
+  }
   const subject = `${testMode ? '[TEST] ' : ''}Allocation ${changed ? 'change' : 'update'} (${modelId}) @ ${new Date(tickId).toISOString()}`;
 
   const trades = await query<{

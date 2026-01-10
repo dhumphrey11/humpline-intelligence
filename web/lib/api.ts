@@ -68,6 +68,7 @@ export type PortfolioState = {
   holdings?: Record<string, number>;
   weights_current: Record<string, number>;
   weights_target: Record<string, number>;
+  llm_content?: string | null;
 };
 
 export type PortfolioSignal = {

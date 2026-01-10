@@ -4,6 +4,7 @@ export * from './db.js';
 export * from './env.js';
 export * from './hash.js';
 export * from './indicators.js';
+export * from './logger.js';
 export * from './math.js';
 export * from './model.js';
 export * from './rebalance.js';

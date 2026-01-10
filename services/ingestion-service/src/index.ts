@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { query, withTransaction } from '@humpline/shared';
+import { query, withTransaction, logAction } from '@humpline/shared';
 
 const app = express();
 app.use(express.json());
@@ -135,6 +135,12 @@ app.post('/ingest/hourly', async (_req: Request, res: Response) => {
         , [runId, 'ingestion-service', startedAt, new Date(), 'SUCCESS', details]
       );
     });
+    await logAction({
+      source: 'ingestion-service',
+      action: 'ingest_hourly',
+      status: 'SUCCESS',
+      detail: { run_id: runId, details }
+    });
 
     res.status(200).json({ run_id: runId, status: 'SUCCESS', details });
   } catch (error: any) {
@@ -145,6 +151,12 @@ app.post('/ingest/hourly', async (_req: Request, res: Response) => {
        VALUES ($1, $2, $3, $4, $5, $6)`
       , [runId, 'ingestion-service', startedAt, new Date(), 'FAILED', details]
       );
+    });
+    await logAction({
+      source: 'ingestion-service',
+      action: 'ingest_hourly',
+      status: 'FAILED',
+      detail: { run_id: runId, error: error?.message ?? 'unknown error', details }
     });
     res.status(500).json({ run_id: runId, status: 'FAILED', error: error?.message ?? 'unknown error' });
   }

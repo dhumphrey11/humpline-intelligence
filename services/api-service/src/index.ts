@@ -1,6 +1,7 @@
 import express from 'express';
 import { OAuth2Client } from 'google-auth-library';
-import { query, withTransaction } from '@humpline/shared';
+import { query, withTransaction, logAction } from '@humpline/shared';
+import { logsRouter } from './routes/logs.js';
 
 const app = express();
 app.use(express.json());
@@ -75,6 +76,7 @@ async function requireAdmin(req: express.Request, res: express.Response, next: e
     res.status(403).json({ error: 'admin access required' });
     return;
   }
+  res.locals.userEmail = email;
   next();
 }
 
@@ -301,9 +303,17 @@ app.get('/api/monitor/alerts', async (_req, res) => {
 
 app.post('/api/admin/models/:model_id/set_active', requireAdmin, async (req, res) => {
   const modelId = req.params.model_id;
+  const actor = res.locals.userEmail as string | undefined;
   await withTransaction(async (client) => {
     await client.query('UPDATE models SET is_active = false');
     await client.query('UPDATE models SET is_active = true WHERE model_id = $1', [modelId]);
+  });
+  await logAction({
+    actor,
+    source: 'api-service',
+    action: 'set_active_model',
+    status: 'SUCCESS',
+    detail: { model_id: modelId }
   });
   res.status(200).json({ status: 'ok', model_id: modelId, is_active: true });
 });
@@ -311,25 +321,55 @@ app.post('/api/admin/models/:model_id/set_active', requireAdmin, async (req, res
 app.post('/api/admin/models/:model_id/set_contender', requireAdmin, async (req, res) => {
   const modelId = req.params.model_id;
   const desired = req.body?.is_contender as boolean | undefined;
+  const actor = res.locals.userEmail as string | undefined;
   if (typeof desired === 'boolean') {
     await query('UPDATE models SET is_contender = $1 WHERE model_id = $2', [desired, modelId]);
+    await logAction({
+      actor,
+      source: 'api-service',
+      action: 'set_contender_model',
+      status: 'SUCCESS',
+      detail: { model_id: modelId, is_contender: desired }
+    });
     res.status(200).json({ status: 'ok', model_id: modelId, is_contender: desired });
     return;
   }
   const current = await query<{ is_contender: boolean }>('SELECT is_contender FROM models WHERE model_id = $1', [modelId]);
   const next = !(current.rows[0]?.is_contender ?? false);
   await query('UPDATE models SET is_contender = $1 WHERE model_id = $2', [next, modelId]);
+  await logAction({
+    actor,
+    source: 'api-service',
+    action: 'toggle_contender_model',
+    status: 'SUCCESS',
+    detail: { model_id: modelId, is_contender: next }
+  });
   res.status(200).json({ status: 'ok', model_id: modelId, is_contender: next });
 });
 
 app.post('/api/admin/tick/run', requireAdmin, async (req, res) => {
   const tickId = req.body?.tick_id as string | undefined;
   const target = `${TICK_ORCHESTRATOR_URL}/tick/run${tickId ? `?tick_id=${encodeURIComponent(tickId)}` : ''}`;
+  const actor = res.locals.userEmail as string | undefined;
   try {
     const response = await fetch(target, { method: 'POST' });
     const body = await response.json().catch(() => null);
+    await logAction({
+      actor,
+      source: 'api-service',
+      action: 'tick_run',
+      status: response.ok ? 'SUCCESS' : 'FAILED',
+      detail: { tick_id: tickId ?? 'auto', response: body }
+    });
     res.status(response.status).json(body ?? { status: response.status });
   } catch (error: any) {
+    await logAction({
+      actor,
+      source: 'api-service',
+      action: 'tick_run',
+      status: 'FAILED',
+      detail: { tick_id: tickId ?? 'auto', error: error?.message ?? 'tick run failed' }
+    });
     res.status(500).json({ error: error?.message ?? 'tick run failed' });
   }
 });
@@ -357,6 +397,13 @@ app.get('/api/admin/settings', requireAdmin, async (_req, res) => {
 app.post('/api/admin/settings/test_mode', requireAdmin, async (req, res) => {
   const enabled = Boolean(req.body?.enabled);
   await setTestMode(enabled);
+  await logAction({
+    actor: res.locals.userEmail as string | undefined,
+    source: 'api-service',
+    action: 'set_test_mode',
+    status: 'SUCCESS',
+    detail: { enabled }
+  });
   res.status(200).json({ test_mode: enabled });
 });
 
@@ -365,6 +412,13 @@ app.post('/api/admin/settings/notify_to', requireAdmin, async (req, res) => {
   const emails =
     Array.isArray(incoming) ? incoming.join(',') : (incoming ?? '');
   await setNotifyRecipients(emails);
+  await logAction({
+    actor: res.locals.userEmail as string | undefined,
+    source: 'api-service',
+    action: 'set_notify_to',
+    status: 'SUCCESS',
+    detail: { emails }
+  });
   res.status(200).json({ notify_to: emails });
 });
 
@@ -401,6 +455,8 @@ app.get('/api/admin/data/overview', requireAdmin, async (_req, res) => {
     recent_portfolios: recentPortfolios.rows
   });
 });
+
+app.use('/api/admin/logs', requireAdmin, logsRouter);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });

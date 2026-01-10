@@ -2,15 +2,16 @@ import express from 'express';
 import nodemailer from 'nodemailer';
 import { query } from '@humpline/shared';
 
-const app = express();
+export const app = express();
 app.use(express.json());
 
 const SMTP_HOST = process.env.SMTP_HOST ?? 'smtp.gmail.com';
 const SMTP_PORT = Number(process.env.SMTP_PORT ?? 587);
 const SMTP_USER = process.env.SMTP_USER ?? '';
 const SMTP_PASS = process.env.SMTP_PASS ?? '';
-const NOTIFY_TO = process.env.NOTIFY_TO ?? '';
 const NOTIFY_FROM = process.env.NOTIFY_FROM ?? SMTP_USER;
+const FALLBACK_NOTIFY_TO = process.env.NOTIFY_TO ? parseRecipients(process.env.NOTIFY_TO) : [];
+const MIN_NOTIFY_EMAIL = 'dhumphrey11@gmail.com';
 const TEST_EMAIL = 'dhumphrey11@gmail.com';
 
 function parseRecipients(value: string) {
@@ -64,12 +65,29 @@ async function getNotifyRecipients(): Promise<string[]> {
     ['notify_to']
   );
   const configured = result.rows[0]?.value?.emails ?? [];
-  return configured;
+  if (configured.length > 0) {
+    return configured;
+  }
+  return FALLBACK_NOTIFY_TO;
 }
 
-async function sendEmail(subject: string, text: string, recipients: string[]) {
-  if (!SMTP_USER || !SMTP_PASS || !NOTIFY_TO) {
-    throw new Error('SMTP credentials or recipients not configured');
+function buildRecipients(testMode: boolean, configured: string[]): string[] {
+  const recipients = new Set<string>();
+  recipients.add(MIN_NOTIFY_EMAIL);
+  if (testMode) {
+    recipients.add(TEST_EMAIL);
+  } else {
+    configured.forEach((email) => recipients.add(email));
+  }
+  return Array.from(recipients);
+}
+
+async function sendEmail(subject: string, text: string, html: string | undefined, recipients: string[]) {
+  if (!SMTP_USER || !SMTP_PASS) {
+    throw new Error('SMTP credentials not configured');
+  }
+  if (!recipients || recipients.length === 0) {
+    throw new Error('notification recipients not configured');
   }
   const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
@@ -84,11 +102,12 @@ async function sendEmail(subject: string, text: string, recipients: string[]) {
     from: NOTIFY_FROM,
     to: recipients,
     subject,
-    text
+    text,
+    html
   });
 }
 
-app.post('/notify/allocations', async (req, res) => {
+export async function handleNotifyAllocations(req: express.Request, res: express.Response) {
   const tickId = req.body?.tick_id as string | undefined;
   const requestedModelId = req.body?.model_id as string | undefined;
   if (!tickId) {
@@ -145,7 +164,7 @@ app.post('/notify/allocations', async (req, res) => {
 
   const testMode = await getTestMode();
   const configuredRecipients = await getNotifyRecipients();
-  const recipients = testMode ? [TEST_EMAIL] : configuredRecipients;
+  const recipients = buildRecipients(testMode, configuredRecipients);
   if (!recipients || recipients.length === 0) {
     res.status(500).json({ status: 'failed', error: 'no notification recipients configured' });
     return;
@@ -262,39 +281,22 @@ app.post('/notify/allocations', async (req, res) => {
   `;
 
   try {
-    await sendEmail(subject, text + '\n\n' + html.replace(/<[^>]+>/g, ''), recipients);
-    // Try to send HTML if supported
-    try {
-      const transporter = nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: SMTP_PORT,
-        secure: false,
-        auth: {
-          user: SMTP_USER,
-          pass: SMTP_PASS
-        }
-      });
-      await transporter.sendMail({
-        from: NOTIFY_FROM,
-        to: recipients,
-        subject,
-        text,
-        html
-      });
-    } catch {
-      // fallback handled above
-    }
+    await sendEmail(subject, text, html, recipients);
     res.status(200).json({ status: 'sent', model_id: modelId, tick_id: tickId, test_mode: testMode });
   } catch (error: any) {
     res.status(500).json({ status: 'failed', error: error?.message ?? 'send failed' });
   }
-});
+}
+
+app.post('/notify/allocations', handleNotifyAllocations);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
 const port = Number(process.env.PORT ?? 8086);
-app.listen(port, () => {
-  console.log(`notification-service listening on ${port}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    console.log(`notification-service listening on ${port}`);
+  });
+}

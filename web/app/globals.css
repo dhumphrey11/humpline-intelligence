@@ -7,6 +7,8 @@
   --muted: #5c6b80;
   --accent: #1d4ed8;
   --accent-2: #0f766e;
+  --accent-soft: rgba(29, 78, 216, 0.12);
+  --accent-wash: rgba(15, 118, 110, 0.08);
   --card: #ffffff;
   --card-edge: #e2e8f0;
   --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
@@ -45,7 +47,7 @@ main {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: var(--panel);
+  background: linear-gradient(120deg, #ffffff 0%, #f3f6fb 100%);
   border: 1px solid var(--card-edge);
   border-radius: 16px;
   box-shadow: var(--shadow);
@@ -84,26 +86,31 @@ main {
   background: var(--accent-2);
 }
 
-.nav {
+.nav-sub {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 8px 0 4px;
-}
-
-.nav a {
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
   background: var(--panel);
   border: 1px solid var(--card-edge);
-  border-radius: 10px;
-  font-weight: 600;
   box-shadow: var(--shadow);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.nav a:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.12);
+.nav-link {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease;
+}
+
+.nav-link:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(29, 78, 216, 0.2);
 }
 
 .grid {
@@ -136,7 +143,7 @@ main {
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(29, 78, 216, 0.12), transparent 70%);
+  background: radial-gradient(circle, var(--accent-soft), transparent 70%);
   top: -28px;
   right: -30px;
 }
@@ -160,9 +167,23 @@ main {
   gap: 8px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(29, 78, 216, 0.12);
+  background: var(--accent-soft);
   color: var(--accent);
   font-weight: 600;
+}
+
+.layout::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, var(--accent-wash), transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.layout > * {
+  position: relative;
+  z-index: 1;
 }
 
 .table {

@@ -10,9 +10,5 @@
     "build": "npm run build -ws",
     "lint": "npm run lint -ws",
     "test": "npm run test -ws"
-  },
-  "dependencies": {
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3"
   }
 }

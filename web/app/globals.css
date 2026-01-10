@@ -1,7 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg: #f6f7fb;
+  color-scheme: light dark;
+  --bg: radial-gradient(circle at 20% 20%, rgba(15, 118, 110, 0.08), transparent 40%), linear-gradient(160deg, #f8fafc 0%, #eef2f7 65%, #e5edf6 100%);
   --panel: #ffffff;
   --ink: #101827;
   --muted: #5c6b80;
@@ -12,6 +13,24 @@
   --card: #ffffff;
   --card-edge: #e2e8f0;
   --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --topbar: linear-gradient(120deg, #ffffff 0%, #f3f6fb 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: radial-gradient(circle at 20% 20%, rgba(94, 234, 212, 0.05), transparent 40%), linear-gradient(160deg, #0b1220 0%, #0f172a 65%, #0b1324 100%);
+    --panel: #0f172a;
+    --ink: #e2e8f0;
+    --muted: #9ca3af;
+    --accent: #60a5fa;
+    --accent-2: #34d399;
+    --accent-soft: rgba(96, 165, 250, 0.15);
+    --accent-wash: rgba(52, 211, 153, 0.08);
+    --card: #111827;
+    --card-edge: #1f2937;
+    --shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    --topbar: linear-gradient(120deg, #111827 0%, #0f172a 100%);
+  }
 }
 
 * {
@@ -23,7 +42,7 @@
 body {
   font-family: 'IBM Plex Sans', sans-serif;
   color: var(--ink);
-  background: linear-gradient(160deg, #f8fafc 0%, #eef2f7 65%, #e5edf6 100%);
+  background: var(--bg);
   min-height: 100vh;
 }
 
@@ -47,7 +66,7 @@ main {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: linear-gradient(120deg, #ffffff 0%, #f3f6fb 100%);
+  background: var(--topbar);
   border: 1px solid var(--card-edge);
   border-radius: 16px;
   box-shadow: var(--shadow);
@@ -76,7 +95,7 @@ main {
   padding: 8px 12px;
   border: 1px solid var(--card-edge);
   border-radius: 999px;
-  background: #f8fafc;
+  background: var(--panel);
 }
 
 .user-dot {

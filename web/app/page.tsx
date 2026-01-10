@@ -1,6 +1,7 @@
 import { getAdminHealth, getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates } from '../lib/api';
 import { MiniChart } from '../components/mini-chart';
 import { SignalBadge } from '../components/signal-badge';
+import { formatUtc } from '../lib/format';
 
 function formatPct(value: number) {
   return `${(Number(value) * 100).toFixed(2)}%`;
@@ -29,7 +30,7 @@ export default async function DashboardPage() {
         <div className="card">
           <div className="label">Total Equity</div>
           <div className="stat">${equity.toLocaleString()}</div>
-          <div className="pill">As of {portfolio?.state?.tick_id ?? '—'}</div>
+          <div className="pill">As of {formatUtc(portfolio?.state?.tick_id)}</div>
         </div>
         <div className="card">
           <div className="label">30D Return</div>
@@ -37,8 +38,8 @@ export default async function DashboardPage() {
         </div>
         <div className="card">
           <div className="label">Health</div>
-          <p className="footer-note">Latest tick: {health?.ticks?.[0]?.status ?? '—'}</p>
-          <p className="footer-note">Latest ingestion: {health?.ingestion_runs?.[0]?.status ?? '—'}</p>
+          <p className="footer-note">Latest tick: {health?.ticks?.[0]?.status ?? '—'} @ {formatUtc(health?.ticks?.[0]?.tick_id)}</p>
+          <p className="footer-note">Latest ingestion: {health?.ingestion_runs?.[0]?.status ?? '—'} @ {formatUtc(health?.ingestion_runs?.[0]?.started_at)}</p>
         </div>
       </div>
 
@@ -122,7 +123,7 @@ export default async function DashboardPage() {
             <tbody>
               {recentStates.map((row, index) => (
                 <tr key={`${row.tick_id ?? index}`}>
-                  <td>{row.tick_id}</td>
+                  <td>{formatUtc(row.tick_id)}</td>
                   <td>{JSON.stringify(row.weights_target)}</td>
                   <td>{row.llm_content ?? '—'}</td>
                 </tr>
@@ -147,7 +148,7 @@ export default async function DashboardPage() {
           <tbody>
             {trades.map((trade: any, index: number) => (
               <tr key={`${trade.trade_id ?? index}`}>
-                <td>{trade.ts ?? '—'}</td>
+                <td>{formatUtc(trade.ts)}</td>
                 <td>{trade.symbol ?? '—'}</td>
                 <td>{trade.side ?? '—'}</td>
                 <td>{trade.qty ? Number(trade.qty).toFixed(4) : '—'}</td>

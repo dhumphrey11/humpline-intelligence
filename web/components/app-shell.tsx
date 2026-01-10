@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTransition } from 'react';
 import { Navigation } from './navigation';
+import { UtcClock } from './utc-clock';
 
 export function AppShell({ children, email }: { children: ReactNode; email: string }) {
   const pathname = usePathname();
@@ -29,6 +30,7 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
           <div className="app-title">humpline-intelligence</div>
           <div className="app-subtitle">Paper trading research console</div>
         </div>
+        <UtcClock />
         <div className="user-chip">
           <span className="user-dot" />
           <span>{email}</span>

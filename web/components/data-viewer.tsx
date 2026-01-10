@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { formatUtc } from '../lib/format';
 
 type Props = {
   candles: any[];
@@ -58,11 +59,11 @@ export function DataViewer({ candles, signals, trades, portfolios }: Props) {
       {table === 'candles' && (
         <table className="table">
           <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Close TS</th>
-              <th>Open</th>
-              <th>High</th>
+              <tr>
+                <th>Symbol</th>
+                <th>Close TS</th>
+                <th>Open</th>
+                <th>High</th>
               <th>Low</th>
               <th>Close</th>
               <th>Volume</th>
@@ -72,7 +73,7 @@ export function DataViewer({ candles, signals, trades, portfolios }: Props) {
             {rows.map((row, index) => (
               <tr key={`${row.symbol}-${row.ts}-${index}`}>
                 <td>{row.symbol}</td>
-                <td>{row.ts}</td>
+                <td>{formatUtc(row.ts)}</td>
                 <td>{Number(row.open).toFixed(2)}</td>
                 <td>{Number(row.high).toFixed(2)}</td>
                 <td>{Number(row.low).toFixed(2)}</td>
@@ -99,7 +100,7 @@ export function DataViewer({ candles, signals, trades, portfolios }: Props) {
           <tbody>
             {rows.map((row, index) => (
               <tr key={`${row.model_id}-${row.symbol}-${row.tick_id}-${index}`}>
-                <td>{row.tick_id}</td>
+                <td>{formatUtc(row.tick_id)}</td>
                 <td>{row.model_id}</td>
                 <td>{row.symbol}</td>
                 <td>{row.signal}</td>
@@ -125,7 +126,7 @@ export function DataViewer({ candles, signals, trades, portfolios }: Props) {
           <tbody>
             {rows.map((row, index) => (
               <tr key={`${row.trade_id}-${index}`}>
-                <td>{row.ts}</td>
+                <td>{formatUtc(row.ts)}</td>
                 <td>{row.symbol}</td>
                 <td>{row.side}</td>
                 <td>{Number(row.qty).toFixed(4)}</td>
@@ -151,7 +152,7 @@ export function DataViewer({ candles, signals, trades, portfolios }: Props) {
           <tbody>
             {rows.map((row, index) => (
               <tr key={`${row.portfolio_id}-${row.tick_id}-${index}`}>
-                <td>{row.tick_id}</td>
+                <td>{formatUtc(row.tick_id)}</td>
                 <td>{row.portfolio_id}</td>
                 <td>${Number(row.total_equity_usd).toLocaleString()}</td>
                 <td>${Number(row.cash_usd).toLocaleString()}</td>

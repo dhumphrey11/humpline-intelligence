@@ -2,6 +2,7 @@ import { getAdminHealth, getAdminSettings, getApiHealth, getCurrentUser } from '
 import { TestModeToggle } from '../../components/test-mode-toggle';
 import { NotificationRecipients } from '../../components/notification-recipients';
 import { TriggerTick } from '../../components/trigger-tick';
+import { formatUtc } from '../../lib/format';
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -36,12 +37,12 @@ export default async function AdminPage() {
         <div className="card">
           <div className="label">Latest Tick</div>
           <div className="stat">{latestTick?.status ?? '—'}</div>
-          <p className="footer-note">{latestTick?.tick_id ?? 'No ticks yet'}</p>
+          <p className="footer-note">{formatUtc(latestTick?.tick_id) ?? 'No ticks yet'}</p>
         </div>
         <div className="card">
           <div className="label">Latest Ingestion</div>
           <div className="stat">{latestIngestion?.status ?? '—'}</div>
-          <p className="footer-note">{latestIngestion?.started_at ?? 'No runs yet'}</p>
+          <p className="footer-note">{formatUtc(latestIngestion?.started_at) ?? 'No runs yet'}</p>
         </div>
       </div>
 
@@ -74,7 +75,7 @@ export default async function AdminPage() {
               {health.last_candles.map((row: any, index: number) => (
                 <tr key={`${row.symbol ?? index}`}>
                   <td>{row.symbol ?? '—'}</td>
-                  <td>{row.last_ts ?? '—'}</td>
+                  <td>{formatUtc(row.last_ts)}</td>
                 </tr>
               ))}
             </tbody>
@@ -101,7 +102,7 @@ export default async function AdminPage() {
             <tbody>
               {health.ticks.map((tick: any, index: number) => (
                 <tr key={`${tick.tick_id ?? index}`}>
-                  <td>{tick.tick_id ?? '—'}</td>
+                  <td>{formatUtc(tick.tick_id)}</td>
                   <td>{tick.status ?? '—'}</td>
                 </tr>
               ))}
@@ -120,7 +121,7 @@ export default async function AdminPage() {
             <tbody>
               {health.ingestion_runs.map((run: any, index: number) => (
                 <tr key={`${run.run_id ?? index}`}>
-                  <td>{run.started_at ?? '—'}</td>
+                  <td>{formatUtc(run.started_at)}</td>
                   <td>{run.status ?? '—'}</td>
                 </tr>
               ))}

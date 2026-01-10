@@ -50,7 +50,8 @@ async function checkDataCompleteness(tickId: Date) {
 }
 
 app.post('/tick/run', async (req, res) => {
-  const tickIdParam = req.query.tick_id as string | undefined;
+  const tickIdParam = (req.body?.tick_id as string | undefined) ?? (req.query.tick_id as string | undefined);
+  const force = req.body?.force === true || req.query.force === 'true';
   const tickId = tickIdParam ? new Date(tickIdParam) : alignTickBoundary(new Date());
 
   await ensureTickRow(tickId);
@@ -61,7 +62,7 @@ app.post('/tick/run', async (req, res) => {
   }
 
   const missing = await checkDataCompleteness(tickId);
-  if (missing.length > 0) {
+  if (!force && missing.length > 0) {
     await setTickStatus(tickId, 'FAILED', `Missing candles for: ${missing.join(', ')}`);
     console.error('tick run blocked due to missing candles', { tick: tickId.toISOString(), missing });
     res.status(400).json({
@@ -71,6 +72,8 @@ app.post('/tick/run', async (req, res) => {
       missing
     });
     return;
+  } else if (force && missing.length > 0) {
+    console.warn('tick run forced despite missing candles', { tick: tickId.toISOString(), missing });
   }
 
   await query(

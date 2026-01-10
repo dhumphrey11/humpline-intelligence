@@ -105,6 +105,9 @@ describe('POST /notify/allocations', () => {
       })
       .mockResolvedValueOnce({
         rows: [{ started_at: new Date('2024-05-01T01:00:00.000Z'), status: 'SUCCESS' }]
+      })
+      .mockResolvedValueOnce({
+        rows: [{ content: 'LLM reasoning for the latest target weights.' }]
       });
 
     const res = createMockRes();
@@ -113,7 +116,7 @@ describe('POST /notify/allocations', () => {
     await handleNotifyAllocations(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(queryMock).toHaveBeenCalledTimes(6);
+    expect(queryMock).toHaveBeenCalledTimes(7);
     expect(createTransportMock).toHaveBeenCalledWith({
       host: 'smtp.test',
       port: 2525,
@@ -158,7 +161,8 @@ describe('POST /notify/allocations', () => {
       .mockResolvedValueOnce({ rows: [{ value: { enabled: true } }] })
       .mockResolvedValueOnce({ rows: [{ value: { emails: ['prod@example.com'] } }] })
       .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [] });
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ content: 'Test mode commentary.' }] });
 
     const res = createMockRes();
     const req = { body: { model_id: 'model-2', tick_id: tickId } } as Request;

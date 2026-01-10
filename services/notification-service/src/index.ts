@@ -82,6 +82,10 @@ function buildRecipients(testMode: boolean, configured: string[]): string[] {
   return Array.from(recipients);
 }
 
+function asHtml(text: string) {
+  return text.replace(/\n/g, '<br/>');
+}
+
 async function sendEmail(subject: string, text: string, html: string | undefined, recipients: string[]) {
   if (!SMTP_USER || !SMTP_PASS) {
     throw new Error('SMTP credentials not configured');
@@ -196,6 +200,16 @@ export async function handleNotifyAllocations(req: express.Request, res: express
      LIMIT 3`
   );
 
+  const llm = await query<{
+    content: string;
+  }>(
+    `SELECT content
+     FROM llm_explanations
+     WHERE model_id = $1 AND tick_id = $2
+     LIMIT 1`,
+    [modelId, tickId]
+  );
+
   const tradesText =
     trades.rows.length === 0
       ? 'No trades executed.'
@@ -215,6 +229,8 @@ export async function handleNotifyAllocations(req: express.Request, res: express
           .map((r) => `${r.started_at.toISOString()} status=${r.status}`)
           .join('\n');
 
+  const llmContent = llm.rows[0]?.content ?? 'No LLM reasoning recorded for this tick.';
+
   const text = [
     `Model: ${modelId}`,
     `Tick: ${new Date(tickId).toISOString()}`,
@@ -227,6 +243,9 @@ export async function handleNotifyAllocations(req: express.Request, res: express
     previousRow ? JSON.stringify(previousWeights, null, 2) : 'n/a',
     '',
     `Allocation changed: ${changed ? 'YES' : 'NO'}`,
+    '',
+    'LLM reasoning:',
+    llmContent,
     '',
     'Recent ingestion runs:',
     ingestionText,
@@ -264,6 +283,11 @@ export async function handleNotifyAllocations(req: express.Request, res: express
       <div style="margin-bottom: 12px;">
         <strong>Current holdings</strong><br/>
         <code>${holdingsText}</code>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <strong>LLM reasoning</strong><br/>
+        <div style="background:#e2e8f0; border-radius:8px; padding:10px; white-space:pre-wrap;">${asHtml(llmContent)}</div>
       </div>
 
       <div style="margin-bottom: 12px;">

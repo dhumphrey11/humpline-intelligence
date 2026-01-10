@@ -95,6 +95,27 @@ main {
   background: var(--panel);
   border: 1px solid var(--card-edge);
   box-shadow: var(--shadow);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-main,
+.nav-admin {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.nav-admin {
+  padding-left: 8px;
+  border-left: 1px solid var(--card-edge);
+  color: var(--muted);
+}
+
+.nav-admin .nav-link {
+  font-size: 0.82rem;
+  padding: 5px 10px;
 }
 
 .nav-link {

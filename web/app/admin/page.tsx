@@ -51,7 +51,7 @@ export default async function AdminPage() {
       <div className="card">
         <div className="label">Notification Recipients</div>
         <p className="footer-note">Comma-separated emails. Test mode always overrides to dhumphrey11@gmail.com.</p>
-        <NotificationRecipients initialValue={settings.notify_to ?? ''} />
+        <NotificationRecipients initialValue={settings.notify_to ?? []} />
       </div>
       <div className="grid cols-2">
         <div className="card">

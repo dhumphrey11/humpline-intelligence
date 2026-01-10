@@ -1,4 +1,4 @@
-import { getAdminHealth, getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates } from '../lib/api';
+import { getAdminHealth, getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates, getAdminDataOverview, getActionLogs } from '../lib/api';
 import { MiniChart } from '../components/mini-chart';
 import { SignalBadge } from '../components/signal-badge';
 import { formatUtc } from '../lib/format';
@@ -8,12 +8,14 @@ function formatPct(value: number) {
 }
 
 export default async function DashboardPage() {
-  const [portfolio, perf, recentStatesRaw, tradesResponse, health] = await Promise.all([
+  const [portfolio, perf, recentStatesRaw, tradesResponse, health, dataOverview, actionLogs] = await Promise.all([
     getCurrentPortfolio(),
     getPerformance('30d'),
     getPortfolioStates(5),
     getTrades(20),
-    getAdminHealth()
+    getAdminHealth(),
+    getAdminDataOverview(),
+    getActionLogs()
   ]);
 
   const recentStates = Array.isArray(recentStatesRaw) ? recentStatesRaw : [];
@@ -23,10 +25,19 @@ export default async function DashboardPage() {
   const signals = Array.isArray(portfolio?.signals) ? portfolio?.signals : [];
   const holdings = portfolio?.state?.holdings ?? {};
   const equity = Number(portfolio?.state?.total_equity_usd ?? 0);
+  const latestPrices = Array.isArray(dataOverview?.recent_candles)
+    ? dataOverview.recent_candles.reduce<Record<string, { ts: string; close: string }>>((acc, row) => {
+        const existing = acc[row.symbol];
+        if (!existing || new Date(row.ts).getTime() > new Date(existing.ts).getTime()) {
+          acc[row.symbol] = { ts: row.ts, close: row.close };
+        }
+        return acc;
+      }, {})
+    : {};
 
   return (
     <section className="grid">
-      <div className="grid cols-3">
+      <div className="grid cols-4">
         <div className="card">
           <div className="label">Total Equity</div>
           <div className="stat">${equity.toLocaleString()}</div>
@@ -40,6 +51,13 @@ export default async function DashboardPage() {
           <div className="label">Health</div>
           <p className="footer-note">Latest tick: {health?.ticks?.[0]?.status ?? '—'} @ {formatUtc(health?.ticks?.[0]?.tick_id)}</p>
           <p className="footer-note">Latest ingestion: {health?.ingestion_runs?.[0]?.status ?? '—'} @ {formatUtc(health?.ingestion_runs?.[0]?.started_at)}</p>
+        </div>
+        <div className="card">
+          <div className="label">Latest Prices</div>
+          <p className="footer-note">From most recent ingestion @ {formatUtc(latestPrices.BTC?.ts ?? latestPrices.ETH?.ts ?? latestPrices.ADA?.ts)}</p>
+          <div className="pill">BTC: {latestPrices.BTC ? `$${Number(latestPrices.BTC.close).toFixed(2)}` : 'n/a'}</div>
+          <div className="pill">ETH: {latestPrices.ETH ? `$${Number(latestPrices.ETH.close).toFixed(2)}` : 'n/a'}</div>
+          <div className="pill">ADA: {latestPrices.ADA ? `$${Number(latestPrices.ADA.close).toFixed(4)}` : 'n/a'}</div>
         </div>
       </div>
 
@@ -60,6 +78,23 @@ export default async function DashboardPage() {
                   <td>{asset}</td>
                   <td>{(Number(weightsCurrent[asset as keyof typeof weightsCurrent]) * 100).toFixed(1)}%</td>
                   <td>{(Number(weightsTarget[asset as keyof typeof weightsTarget]) * 100).toFixed(1)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="label" style={{ marginTop: '12px' }}>Holdings</div>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(holdings).map((asset) => (
+                <tr key={asset}>
+                  <td>{asset}</td>
+                  <td>{Number(holdings[asset]).toFixed(6)}</td>
                 </tr>
               ))}
             </tbody>
@@ -90,69 +125,28 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid cols-2">
-        <div className="card">
-          <div className="label">Holdings</div>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Asset</th>
-                <th>Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.keys(holdings).map((asset) => (
-                <tr key={asset}>
-                  <td>{asset}</td>
-                  <td>{Number(holdings[asset]).toFixed(6)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="card">
-          <div className="label">Recent Target Vectors</div>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Tick</th>
-                <th>Weights</th>
-                <th>LLM Reasoning</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentStates.map((row, index) => (
-                <tr key={`${row.tick_id ?? index}`}>
-                  <td>{formatUtc(row.tick_id)}</td>
-                  <td>{JSON.stringify(row.weights_target)}</td>
-                  <td>{row.llm_content ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       <div className="card">
-        <div className="label">Recent Trades</div>
+        <div className="label">Recent Actions</div>
         <table className="table">
           <thead>
             <tr>
-              <th>Time</th>
-              <th>Symbol</th>
-              <th>Side</th>
-              <th>Qty</th>
-              <th>Notional</th>
+              <th>When</th>
+              <th>Actor</th>
+              <th>Source</th>
+              <th>Action</th>
+              <th>Status</th>
+              <th>Detail</th>
             </tr>
           </thead>
           <tbody>
-            {trades.map((trade: any, index: number) => (
-              <tr key={`${trade.trade_id ?? index}`}>
-                <td>{formatUtc(trade.ts)}</td>
-                <td>{trade.symbol ?? '—'}</td>
-                <td>{trade.side ?? '—'}</td>
-                <td>{trade.qty ? Number(trade.qty).toFixed(4) : '—'}</td>
-                <td>{trade.notional_usd ? Number(trade.notional_usd).toFixed(2) : '—'}</td>
+            {(actionLogs ?? []).map((row: any) => (
+              <tr key={row.id}>
+                <td>{formatUtc(row.created_at)}</td>
+                <td>{row.actor ?? '—'}</td>
+                <td>{row.source ?? '—'}</td>
+                <td>{row.action ?? '—'}</td>
+                <td>{row.status ?? '—'}</td>
+                <td><pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{JSON.stringify(row.detail ?? {}, null, 2)}</pre></td>
               </tr>
             ))}
           </tbody>

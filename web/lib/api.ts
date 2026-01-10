@@ -173,6 +173,10 @@ export async function getAdminSettings(): Promise<AdminSettings | null> {
   return safeFetch<AdminSettings>('/api/admin/settings');
 }
 
+export async function getActionLogs(): Promise<any[] | null> {
+  return safeFetch<any[]>('/api/admin/logs');
+}
+
 export async function setTestMode(enabled: boolean): Promise<AdminSettings | null> {
   try {
     const response = await fetch(`${API_BASE}/api/admin/settings/test_mode`, {

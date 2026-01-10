@@ -79,6 +79,43 @@ Output 3-5 bullet lines max. No fluff.`;
   };
 }
 
+type ModelVersionInput = {
+  model_id: string;
+  version: string;
+  notes?: string;
+  factor_config?: any;
+  exec_config?: any;
+  data_config?: any;
+};
+
+function buildModelVersionPrompt(
+  input: ModelVersionInput,
+  previousSummary: { methodology: string; change_notes: string } | null
+) {
+  const system = `You are an expert quant strategy reviewer.
+Return concise, business-friendly prose: 3-5 sentences for methodology, 1-3 sentences for change from previous.
+Avoid code, math notation, and marketing fluff.`;
+
+  const userLines = [
+    `Model ID: ${input.model_id}`,
+    `Version: ${input.version}`,
+    input.notes ? `Notes: ${input.notes}` : null,
+    input.factor_config ? `Factors: ${JSON.stringify(input.factor_config)}` : null,
+    input.exec_config ? `Execution: ${JSON.stringify(input.exec_config)}` : null,
+    input.data_config ? `Data: ${JSON.stringify(input.data_config)}` : null,
+    previousSummary
+      ? `Previous version summary:\nMethodology: ${previousSummary.methodology}\nChange: ${previousSummary.change_notes}`
+      : 'Previous version summary: none available'
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  return {
+    system,
+    user: `${userLines}\n\nRespond as JSON with keys: methodology (3-5 sentences) and change_notes (1-3 sentences).`
+  };
+}
+
 app.post('/llm/generate', async (req, res) => {
   const { model_id, tick_id } = req.body as { model_id: string; tick_id: string };
   if (!model_id || !tick_id) {
@@ -131,6 +168,77 @@ app.post('/llm/generate', async (req, res) => {
   );
 
   res.status(200).json({ status: 'ok', id });
+});
+
+app.post('/llm/model-version', async (req, res) => {
+  const { model_id, version, notes, factor_config, exec_config, data_config } = req.body as ModelVersionInput;
+  if (!model_id || !version) {
+    res.status(400).json({ error: 'model_id and version required' });
+    return;
+  }
+
+  const testMode = await getTestMode();
+
+  const previous = await query<{
+    methodology: string;
+    change_notes: string;
+  }>(
+    `SELECT methodology, change_notes
+     FROM model_version_summaries
+     WHERE model_id = $1 AND version <> $2
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [model_id, version]
+  );
+  const priorSummary = previous.rows[0] ?? null;
+
+  const prompt = buildModelVersionPrompt(
+    { model_id, version, notes, factor_config, exec_config, data_config },
+    priorSummary
+  );
+
+  const id = uuidv4();
+  let methodology = 'Model methodology summary placeholder.';
+  let changeNotes = priorSummary ? `Incremental change from previous version.` : 'First version recorded.';
+  let flags: Record<string, any> = { source: 'placeholder', caution: true };
+
+  if (!testMode && openai) {
+    try {
+      const completion = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [
+          { role: 'system', content: prompt.system },
+          { role: 'user', content: prompt.user }
+        ],
+        max_tokens: 400,
+        temperature: 0.4,
+        response_format: { type: 'json_object' }
+      });
+      const content = completion.choices[0]?.message?.content;
+      if (content) {
+        const parsed = JSON.parse(content) as { methodology?: string; change_notes?: string };
+        methodology = parsed.methodology ?? methodology;
+        changeNotes = parsed.change_notes ?? changeNotes;
+      }
+      flags = { source: 'openai', model: OPENAI_MODEL, caution: false };
+    } catch (error: any) {
+      methodology = `LLM summary failed: ${error?.message ?? 'unknown error'}`;
+      changeNotes = priorSummary?.change_notes ?? changeNotes;
+      flags = { source: 'openai', caution: true, error: true };
+    }
+  } else if (testMode) {
+    methodology = `Test mode: skip LLM call.`;
+    changeNotes = priorSummary?.change_notes ?? changeNotes;
+    flags = { source: 'test_mode', caution: true, test_mode: true };
+  }
+
+  await query(
+    `INSERT INTO model_version_summaries (id, model_id, version, methodology, change_notes, flags)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [id, model_id, version, methodology, changeNotes, flags]
+  );
+
+  res.status(200).json({ status: 'ok', id, methodology, change_notes: changeNotes, test_mode: testMode });
 });
 
 app.get('/health', (_req, res) => {

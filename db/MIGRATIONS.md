@@ -26,4 +26,5 @@
 ### Notes
 - DB: `humpline-db` (Postgres), project `humpline-intelligence`.
 - Direct TCP to `136.111.147.250` may be firewalled; the proxy (`gcloud sql connect`) or import is more reliable.
-- Keep migration files in `db/migrations/` and apply in order.***
+- Keep migration files in `db/migrations/` and apply in order.
+- Bucket IAM (already set): `gs://humpline-intelligence_cloudbuild` grants `storage.objectViewer` to `876191155026-compute@developer.gserviceaccount.com`, so imports via `gcloud sql import sql` should succeed without making objects public. If needed, add the Cloud SQL service identity (`service-<PROJECT_NUMBER>@gcp-sa-cloud-sql.iam.gserviceaccount.com`) with the same role.

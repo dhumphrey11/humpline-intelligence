@@ -20,6 +20,7 @@ export type ApiHealth = {
 
 export type AdminSettings = {
   test_mode: boolean;
+  notify_to?: string;
 };
 
 export type AdminDataOverview = {

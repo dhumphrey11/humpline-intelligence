@@ -60,7 +60,6 @@ export default async function DashboardPage() {
           <div className="pill">ADA: {latestPrices.ADA ? `$${Number(latestPrices.ADA.close).toFixed(4)}` : 'n/a'}</div>
         </div>
       </div>
-
       <div className="grid cols-2">
         <div className="card">
           <div className="label">Allocations (Current vs Target)</div>
@@ -70,6 +69,7 @@ export default async function DashboardPage() {
                 <th>Asset</th>
                 <th>Current</th>
                 <th>Target</th>
+                <th>Quantity</th>
               </tr>
             </thead>
             <tbody>
@@ -78,28 +78,12 @@ export default async function DashboardPage() {
                   <td>{asset}</td>
                   <td>{(Number(weightsCurrent[asset as keyof typeof weightsCurrent]) * 100).toFixed(1)}%</td>
                   <td>{(Number(weightsTarget[asset as keyof typeof weightsTarget]) * 100).toFixed(1)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="label" style={{ marginTop: '12px' }}>Holdings</div>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Asset</th>
-                <th>Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.keys(holdings).map((asset) => (
-                <tr key={asset}>
-                  <td>{asset}</td>
                   <td>{Number(holdings[asset]).toFixed(6)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+          
         <div className="card">
           <div className="label">Signals</div>
           <table className="table">

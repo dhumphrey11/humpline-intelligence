@@ -8,6 +8,7 @@ export function Navigation() {
       <Link href="/transactions">Historical Transactions</Link>
       <Link href="/monitoring">Performance Monitoring</Link>
       <Link href="/admin">Admin</Link>
+      <Link href="/admin/data">Data Explorer</Link>
     </nav>
   );
 }

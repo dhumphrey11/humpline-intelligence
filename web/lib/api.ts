@@ -17,6 +17,45 @@ export type ApiHealth = {
   status: string;
 };
 
+export type AdminDataOverview = {
+  recent_candles: Array<{
+    symbol: string;
+    ts: string;
+    open: string;
+    high: string;
+    low: string;
+    close: string;
+    volume: string;
+  }>;
+  recent_signals: Array<{
+    model_id: string;
+    tick_id: string;
+    symbol: string;
+    asset_score: string;
+    signal: string;
+    confidence: number;
+  }>;
+  recent_trades: Array<{
+    trade_id: string;
+    portfolio_id: string;
+    model_id: string;
+    ts: string;
+    symbol: string;
+    side: string;
+    qty: string;
+    notional_usd: string;
+  }>;
+  recent_portfolios: Array<{
+    portfolio_id: string;
+    model_id: string;
+    tick_id: string;
+    total_equity_usd: string;
+    cash_usd: string;
+    weights_current: Record<string, number>;
+    weights_target: Record<string, number>;
+  }>;
+};
+
 export type PortfolioState = {
   tick_id: string;
   total_equity_usd: number;
@@ -112,6 +151,10 @@ export async function getTransactions(filters: string) {
 
 export async function getAdminHealth(): Promise<AdminHealth | null> {
   return safeFetch<AdminHealth>('/api/admin/system/health');
+}
+
+export async function getAdminDataOverview(): Promise<AdminDataOverview | null> {
+  return safeFetch<AdminDataOverview>('/api/admin/data/overview');
 }
 
 export async function getApiHealth(): Promise<ApiHealth | null> {

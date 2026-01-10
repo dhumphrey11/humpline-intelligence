@@ -263,6 +263,40 @@ app.get('/api/admin/system/health', requireAdmin, async (_req, res) => {
   });
 });
 
+app.get('/api/admin/data/overview', requireAdmin, async (_req, res) => {
+  const recentCandles = await query(
+    `SELECT symbol, ts, open, high, low, close, volume
+     FROM candles
+     WHERE timeframe = '1h' AND source = 'coinbase'
+     ORDER BY ts DESC
+     LIMIT 50`
+  );
+  const recentSignals = await query(
+    `SELECT model_id, tick_id, symbol, asset_score, signal, confidence
+     FROM signals
+     ORDER BY tick_id DESC, symbol
+     LIMIT 50`
+  );
+  const recentTrades = await query(
+    `SELECT trade_id, portfolio_id, model_id, ts, symbol, side, qty, notional_usd
+     FROM trades
+     ORDER BY ts DESC
+     LIMIT 50`
+  );
+  const recentPortfolios = await query(
+    `SELECT portfolio_id, model_id, tick_id, total_equity_usd, cash_usd, weights_current, weights_target
+     FROM portfolio_states
+     ORDER BY tick_id DESC
+     LIMIT 20`
+  );
+  res.status(200).json({
+    recent_candles: recentCandles.rows,
+    recent_signals: recentSignals.rows,
+    recent_trades: recentTrades.rows,
+    recent_portfolios: recentPortfolios.rows
+  });
+});
+
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });

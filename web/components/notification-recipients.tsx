@@ -13,29 +13,14 @@ export function NotificationRecipients({ initialValue }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const addEmail = () => {
-    const trimmed = input.trim();
-    if (!trimmed) return;
-    if (list.includes(trimmed)) {
-      setInput('');
-      return;
-    }
-    setList((prev) => [...prev, trimmed]);
-    setInput('');
-  };
-
-  const removeEmail = (email: string) => {
-    setList((prev) => prev.filter((e) => e !== email));
-  };
-
-  const onSave = () => {
+  const persist = (emails: string[]) => {
     startTransition(async () => {
       setError(null);
       setSaved(false);
       const response = await fetch('/api/admin/settings/notify_to', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emails: list })
+        body: JSON.stringify({ emails })
       });
       if (!response.ok) {
         setError('Failed to save recipients');
@@ -43,6 +28,25 @@ export function NotificationRecipients({ initialValue }: Props) {
       }
       setSaved(true);
     });
+  };
+
+  const addEmail = () => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    if (list.includes(trimmed)) {
+      setInput('');
+      return;
+    }
+    const next = [...list, trimmed];
+    setList(next);
+    setInput('');
+    persist(next);
+  };
+
+  const removeEmail = (email: string) => {
+    const next = list.filter((e) => e !== email);
+    setList(next);
+    persist(next);
   };
 
   return (
@@ -75,11 +79,8 @@ export function NotificationRecipients({ initialValue }: Props) {
         <button className="btn" onClick={addEmail} disabled={pending}>
           Add
         </button>
-        <button className="btn" onClick={onSave} disabled={pending}>
-          {pending ? 'Saving...' : 'Save'}
-        </button>
       </div>
-      {saved ? <p className="footer-note">Saved.</p> : null}
+      {saved ? <p className="footer-note">Saved automatically.</p> : null}
       {error ? <p className="footer-note">{error}</p> : null}
     </div>
   );

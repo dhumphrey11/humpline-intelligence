@@ -86,6 +86,29 @@ function asHtml(text: string) {
   return text.replace(/\n/g, '<br/>');
 }
 
+async function getLatestPrices(symbols: string[], asOf?: Date | null) {
+  const prices: Record<string, number | null> = {};
+  for (const symbol of symbols) {
+    const params: Array<any> = [symbol, '1h', 'coinbase'];
+    let sql = `
+      SELECT close
+      FROM candles
+      WHERE symbol = $1 AND timeframe = $2 AND source = $3
+    `;
+    if (asOf) {
+      sql += ' AND ts <= $4';
+      params.push(asOf);
+    }
+    sql += `
+      ORDER BY ts DESC
+      LIMIT 1
+    `;
+    const result = await query<{ close: number }>(sql, params);
+    prices[symbol] = result.rows[0]?.close ?? null;
+  }
+  return prices;
+}
+
 async function sendEmail(subject: string, text: string, html: string | undefined, recipients: string[]) {
   if (!SMTP_USER || !SMTP_PASS) {
     throw new Error('SMTP credentials not configured');
@@ -200,6 +223,9 @@ export async function handleNotifyAllocations(req: express.Request, res: express
      LIMIT 3`
   );
 
+  const lastIngestionAt = ingestion.rows[0]?.started_at ?? null;
+  const prices = await getLatestPrices(['BTC', 'ETH', 'ADA'], lastIngestionAt);
+
   const llm = await query<{
     content: string;
   }>(
@@ -230,22 +256,28 @@ export async function handleNotifyAllocations(req: express.Request, res: express
           .join('\n');
 
   const llmContent = llm.rows[0]?.content ?? 'No LLM reasoning recorded for this tick.';
+  const priceText = ['BTC', 'ETH', 'ADA']
+    .map((sym) => `${sym}: ${prices[sym] !== null ? `$${Number(prices[sym]).toFixed(2)}` : 'n/a'}`)
+    .join(' | ');
 
   const text = [
     `Model: ${modelId}`,
     `Tick: ${new Date(tickId).toISOString()}`,
     `Test mode: ${testMode}`,
     '',
+    `Allocation changed: ${changed ? 'YES' : 'NO'}`,
+    '',
+    'Intelligence:',
+    llmContent,
+    '',
+    'Prices:',
+    priceText,
+    '',
     'Latest target weights:',
     JSON.stringify(latestWeights, null, 2),
     '',
     previousRow ? 'Previous target weights:' : 'Previous target weights: (none found)',
     previousRow ? JSON.stringify(previousWeights, null, 2) : 'n/a',
-    '',
-    `Allocation changed: ${changed ? 'YES' : 'NO'}`,
-    '',
-    'LLM reasoning:',
-    llmContent,
     '',
     'Recent ingestion runs:',
     ingestionText,
@@ -262,6 +294,16 @@ export async function handleNotifyAllocations(req: express.Request, res: express
 
       <div style="margin-bottom: 12px; padding: 12px; border-radius: 10px; background: #e0f2fe;">
         <strong>Allocation changed:</strong> ${changed ? '<span style="color:#0f766e;">YES</span>' : 'NO'}
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <strong>Intelligence</strong><br/>
+        <div style="background:#e2e8f0; border-radius:8px; padding:10px; white-space:pre-wrap;">${asHtml(llmContent)}</div>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <strong>Prices</strong><br/>
+        <code>${priceText}</code>
       </div>
 
       <div style="margin-bottom: 12px;">

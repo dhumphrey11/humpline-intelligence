@@ -108,7 +108,10 @@ describe('POST /notify/allocations', () => {
       })
       .mockResolvedValueOnce({
         rows: [{ content: 'LLM reasoning for the latest target weights.' }]
-      });
+      })
+      .mockResolvedValueOnce({ rows: [{ close: 64000 }] })
+      .mockResolvedValueOnce({ rows: [{ close: 3500 }] })
+      .mockResolvedValueOnce({ rows: [{ close: 1.25 }] });
 
     const res = createMockRes();
     const req = { body: { model_id: 'model-1', tick_id: tickId } } as Request;
@@ -116,7 +119,7 @@ describe('POST /notify/allocations', () => {
     await handleNotifyAllocations(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(queryMock).toHaveBeenCalledTimes(7);
+    expect(queryMock).toHaveBeenCalledTimes(10);
     expect(createTransportMock).toHaveBeenCalledWith({
       host: 'smtp.test',
       port: 2525,
@@ -162,7 +165,10 @@ describe('POST /notify/allocations', () => {
       .mockResolvedValueOnce({ rows: [{ value: { emails: ['prod@example.com'] } }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [{ content: 'Test mode commentary.' }] });
+      .mockResolvedValueOnce({ rows: [{ content: 'Test mode commentary.' }] })
+      .mockResolvedValueOnce({ rows: [{ close: 63000 }] })
+      .mockResolvedValueOnce({ rows: [{ close: 3200 }] })
+      .mockResolvedValueOnce({ rows: [{ close: 1.15 }] });
 
     const res = createMockRes();
     const req = { body: { model_id: 'model-2', tick_id: tickId } } as Request;

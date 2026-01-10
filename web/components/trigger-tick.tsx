@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react';
 
 export function TriggerTick() {
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? '';
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -12,8 +11,7 @@ export function TriggerTick() {
     startTransition(async () => {
       setStatus(null);
       setError(null);
-      const url = apiBase ? `${apiBase}/api/admin/tick/run` : '/api/admin/tick/run';
-      const response = await fetch(url, { method: 'POST', credentials: 'include' });
+      const response = await fetch('/api/admin/tick/run', { method: 'POST' });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
         setError(body?.error ?? `Failed: ${response.status}`);

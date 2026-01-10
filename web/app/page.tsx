@@ -1,16 +1,18 @@
-import { getCurrentPortfolio, getPerformance, getTrades } from '../lib/api';
+import { getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates } from '../lib/api';
 import { MiniChart } from '../components/mini-chart';
 import { SignalBadge } from '../components/signal-badge';
 
 export default async function CurrentPortfolioPage() {
   const data = await getCurrentPortfolio();
   const perf = await getPerformance('30d');
+  const recentStates = (await getPortfolioStates(5)) ?? [];
   const tradesResponse = await getTrades(20);
   const trades = Array.isArray(tradesResponse) ? tradesResponse : [];
   const weightsCurrent = data?.state?.weights_current ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
   const weightsTarget = data?.state?.weights_target ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
   const equitySeries: number[] = [];
   const signals = Array.isArray(data?.signals) ? data?.signals : [];
+  const holdings = data?.state?.holdings ?? {};
 
   return (
     <section className="grid">
@@ -75,6 +77,47 @@ export default async function CurrentPortfolioPage() {
                   <td><SignalBadge signal={signal.signal} /></td>
                   <td>{Number(signal.asset_score ?? 0).toFixed(2)}</td>
                   <td>{signal.confidence ?? 0}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="grid cols-2">
+        <div className="card">
+          <div className="label">Current Positions</div>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(holdings).map((asset) => (
+                <tr key={asset}>
+                  <td>{asset}</td>
+                  <td>{Number(holdings[asset]).toFixed(6)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="card">
+          <div className="label">Recent Target Vectors</div>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Tick</th>
+                <th>Weights</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentStates.map((row, index) => (
+                <tr key={`${row.tick_id ?? index}`}>
+                  <td>{row.tick_id}</td>
+                  <td>{JSON.stringify(row.weights_target)}</td>
                 </tr>
               ))}
             </tbody>

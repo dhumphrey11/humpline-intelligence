@@ -64,6 +64,7 @@ export type AdminDataOverview = {
 export type PortfolioState = {
   tick_id: string;
   total_equity_usd: number;
+  holdings?: Record<string, number>;
   weights_current: Record<string, number>;
   weights_target: Record<string, number>;
 };
@@ -124,6 +125,10 @@ async function safeFetch<T>(path: string): Promise<T | null> {
 
 export async function getCurrentPortfolio(): Promise<PortfolioResponse | null> {
   return safeFetch<PortfolioResponse>('/api/portfolio/current');
+}
+
+export async function getPortfolioStates(limit = 5): Promise<PortfolioState[] | null> {
+  return safeFetch<PortfolioState[]>(`/api/portfolio/states?limit=${limit}`);
 }
 
 export async function getPerformance(range: string): Promise<PerformanceResponse | null> {

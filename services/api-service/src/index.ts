@@ -177,6 +177,25 @@ app.get('/api/portfolio/transactions', async (req, res) => {
   res.status(200).json(trades.rows);
 });
 
+app.get('/api/portfolio/states', async (req, res) => {
+  const modelId = await getActiveModelId();
+  if (!modelId) {
+    res.status(404).json({ error: 'no active model' });
+    return;
+  }
+  const portfolioId = `paper_${modelId}`;
+  const limit = Number(req.query.limit ?? 5);
+  const rows = await query(
+    `SELECT tick_id, weights_target, weights_current, holdings, total_equity_usd, cash_usd
+     FROM portfolio_states
+     WHERE portfolio_id = $1
+     ORDER BY tick_id DESC
+     LIMIT $2`,
+    [portfolioId, limit]
+  );
+  res.status(200).json(rows.rows);
+});
+
 app.get('/api/trades', async (req, res) => {
   const { model_id, symbol, side, from, to, limit } = req.query as Record<string, string>;
   const clauses: string[] = [];

@@ -83,7 +83,7 @@ export default async function DashboardPage() {
               ))}
             </tbody>
           </table>
-          
+        </div>
         <div className="card">
           <div className="label">Signals</div>
           <table className="table">

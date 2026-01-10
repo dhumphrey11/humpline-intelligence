@@ -273,6 +273,21 @@ main {
   font-size: 0.95rem;
 }
 
+.pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pill-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 4px;
+  font-weight: 700;
+}
+
 .btn {
   padding: 8px 12px;
   border-radius: 10px;

@@ -12,7 +12,7 @@ const authClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 type AppSettings = {
   test_mode: boolean;
-  notify_to?: string;
+  notify_to?: string[];
 };
 
 function extractEmail(header?: string) {
@@ -334,7 +334,9 @@ app.post('/api/admin/settings/test_mode', requireAdmin, async (req, res) => {
 });
 
 app.post('/api/admin/settings/notify_to', requireAdmin, async (req, res) => {
-  const emails = (req.body?.emails as string | undefined) ?? '';
+  const incoming = req.body?.emails as string | string[] | undefined;
+  const emails =
+    Array.isArray(incoming) ? incoming.join(',') : (incoming ?? '');
   await setNotifyRecipients(emails);
   res.status(200).json({ notify_to: emails });
 });

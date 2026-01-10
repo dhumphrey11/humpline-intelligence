@@ -3,14 +3,30 @@
 import { useState, useTransition } from 'react';
 
 type Props = {
-  initialValue: string;
+  initialValue: string[];
 };
 
 export function NotificationRecipients({ initialValue }: Props) {
-  const [value, setValue] = useState(initialValue);
+  const [list, setList] = useState<string[]>(initialValue ?? []);
+  const [input, setInput] = useState('');
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const addEmail = () => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    if (list.includes(trimmed)) {
+      setInput('');
+      return;
+    }
+    setList((prev) => [...prev, trimmed]);
+    setInput('');
+  };
+
+  const removeEmail = (email: string) => {
+    setList((prev) => prev.filter((e) => e !== email));
+  };
 
   const onSave = () => {
     startTransition(async () => {
@@ -19,7 +35,7 @@ export function NotificationRecipients({ initialValue }: Props) {
       const response = await fetch('/api/admin/settings/notify_to', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emails: value })
+        body: JSON.stringify({ emails: list })
       });
       if (!response.ok) {
         setError('Failed to save recipients');
@@ -31,16 +47,38 @@ export function NotificationRecipients({ initialValue }: Props) {
 
   return (
     <div className="toggle">
-      <input
-        type="text"
-        className="input"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="email1@example.com, email2@example.com"
-      />
-      <button className="btn" onClick={onSave} disabled={pending}>
-        {pending ? 'Saving...' : 'Save'}
-      </button>
+      <div className="pill-list">
+        {list.map((email) => (
+          <span className="pill" key={email}>
+            {email}
+            <button className="pill-close" onClick={() => removeEmail(email)} aria-label={`Remove ${email}`}>
+              ×
+            </button>
+          </span>
+        ))}
+        {list.length === 0 ? <p className="footer-note">No recipients set.</p> : null}
+      </div>
+      <div className="toggle">
+        <input
+          type="text"
+          className="input"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="email@example.com"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addEmail();
+            }
+          }}
+        />
+        <button className="btn" onClick={addEmail} disabled={pending}>
+          Add
+        </button>
+        <button className="btn" onClick={onSave} disabled={pending}>
+          {pending ? 'Saving...' : 'Save'}
+        </button>
+      </div>
       {saved ? <p className="footer-note">Saved.</p> : null}
       {error ? <p className="footer-note">{error}</p> : null}
     </div>

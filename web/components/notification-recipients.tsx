@@ -23,7 +23,8 @@ export function NotificationRecipients({ initialValue }: Props) {
         body: JSON.stringify({ emails })
       });
       if (!response.ok) {
-        setError('Failed to save recipients');
+        const text = await response.text().catch(() => '');
+        setError(`Failed to save recipients (${response.status}): ${text || 'unknown error'}`);
         return;
       }
       setSaved(true);

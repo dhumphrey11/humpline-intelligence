@@ -90,9 +90,11 @@ app.post('/notify/allocations', async (req, res) => {
 
   const latest = await query<{
     weights_target: Record<string, number>;
+    weights_current: Record<string, number>;
+    total_equity_usd: number;
     tick_id: Date;
   }>(
-    `SELECT tick_id, weights_target
+    `SELECT tick_id, weights_target, weights_current, total_equity_usd
      FROM portfolio_states
      WHERE model_id = $1 AND tick_id = $2
      ORDER BY tick_id DESC
@@ -100,16 +102,14 @@ app.post('/notify/allocations', async (req, res) => {
     [modelId, tickId]
   );
   const latestRow = latest.rows[0];
-  if (!latestRow) {
-    res.status(200).json({ status: 'noop', message: 'no portfolio state for tick' });
-    return;
-  }
 
   const previous = await query<{
     weights_target: Record<string, number>;
+    weights_current: Record<string, number>;
+    total_equity_usd: number;
     tick_id: Date;
   }>(
-    `SELECT tick_id, weights_target
+    `SELECT tick_id, weights_target, weights_current, total_equity_usd
      FROM portfolio_states
      WHERE model_id = $1 AND tick_id < $2
      ORDER BY tick_id DESC
@@ -117,35 +117,80 @@ app.post('/notify/allocations', async (req, res) => {
     [modelId, tickId]
   );
   const previousRow = previous.rows[0];
-  if (!previousRow) {
-    res.status(200).json({ status: 'noop', message: 'no previous portfolio state' });
-    return;
-  }
 
-  const latestWeights = normalizeWeights(latestRow.weights_target ?? {});
-  const previousWeights = normalizeWeights(previousRow.weights_target ?? {});
+  const latestWeights = normalizeWeights(latestRow?.weights_target ?? {});
+  const previousWeights = normalizeWeights(previousRow?.weights_target ?? {});
   const changed =
+    !!previousRow &&
     JSON.stringify(latestWeights) !== JSON.stringify(previousWeights);
-
-  if (!changed) {
-    res.status(200).json({ status: 'noop', message: 'weights unchanged' });
-    return;
-  }
 
   const testMode = await getTestMode();
   const configuredRecipients = await getNotifyRecipients();
   const recipients = testMode ? [TEST_EMAIL] : configuredRecipients;
-  const subject = `${testMode ? '[TEST]' : ''} Allocation change (${modelId}) @ ${new Date(tickId).toISOString()}`;
+  const subject = `${testMode ? '[TEST] ' : ''}Allocation ${changed ? 'change' : 'update'} (${modelId}) @ ${new Date(tickId).toISOString()}`;
+
+  const trades = await query<{
+    trade_id: string;
+    symbol: string;
+    side: string;
+    qty: number;
+    notional_usd: number;
+    ts: Date;
+  }>(
+    `SELECT trade_id, symbol, side, qty, notional_usd, ts
+     FROM trades
+     WHERE model_id = $1 AND tick_id = $2
+     ORDER BY ts DESC`,
+    [modelId, tickId]
+  );
+
+  const ingestion = await query<{
+    started_at: Date;
+    status: string;
+  }>(
+    `SELECT started_at, status
+     FROM ingestion_runs
+     ORDER BY started_at DESC
+     LIMIT 3`
+  );
+
+  const tradesText =
+    trades.rows.length === 0
+      ? 'No trades executed.'
+      : trades.rows
+          .map(
+            (t) =>
+              `${t.ts.toISOString()} ${t.side} ${t.symbol} qty=${t.qty} notional=$${Number(
+                t.notional_usd
+              ).toFixed(2)}`
+          )
+          .join('\n');
+
+  const ingestionText =
+    ingestion.rows.length === 0
+      ? 'No ingestion runs recorded.'
+      : ingestion.rows
+          .map((r) => `${r.started_at.toISOString()} status=${r.status}`)
+          .join('\n');
+
   const text = [
     `Model: ${modelId}`,
     `Tick: ${new Date(tickId).toISOString()}`,
     `Test mode: ${testMode}`,
     '',
-    'Previous target weights:',
-    JSON.stringify(previousWeights, null, 2),
+    'Latest target weights:',
+    JSON.stringify(latestWeights, null, 2),
     '',
-    'New target weights:',
-    JSON.stringify(latestWeights, null, 2)
+    previousRow ? 'Previous target weights:' : 'Previous target weights: (none found)',
+    previousRow ? JSON.stringify(previousWeights, null, 2) : 'n/a',
+    '',
+    `Allocation changed: ${changed ? 'YES' : 'NO'}`,
+    '',
+    'Recent ingestion runs:',
+    ingestionText,
+    '',
+    'Trades this tick:',
+    tradesText
   ].join('\n');
 
   try {

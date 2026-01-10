@@ -1,5 +1,6 @@
 import { getAdminHealth, getAdminSettings, getApiHealth, getCurrentUser } from '../../lib/api';
 import { TestModeToggle } from '../../components/test-mode-toggle';
+import { NotificationRecipients } from '../../components/notification-recipients';
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -46,6 +47,11 @@ export default async function AdminPage() {
         <div className="label">Environment Mode</div>
         <p className="footer-note">Toggle test/production. Test mode routes notifications only to dhumphrey11@gmail.com and skips LLM calls.</p>
         <TestModeToggle initialEnabled={settings.test_mode} />
+      </div>
+      <div className="card">
+        <div className="label">Notification Recipients</div>
+        <p className="footer-note">Comma-separated emails. Test mode always overrides to dhumphrey11@gmail.com.</p>
+        <NotificationRecipients initialValue={settings.notify_to ?? ''} />
       </div>
       <div className="grid cols-2">
         <div className="card">

@@ -44,6 +44,15 @@ async function getTestMode(): Promise<boolean> {
   return result.rows[0]?.value?.enabled ?? false;
 }
 
+async function getNotifyRecipients(): Promise<string[]> {
+  const result = await query<{ value: { emails: string[] } }>(
+    'SELECT value FROM app_settings WHERE key = $1 LIMIT 1',
+    ['notify_to']
+  );
+  const configured = result.rows[0]?.value?.emails ?? [];
+  return configured.length > 0 ? configured : parseRecipients(NOTIFY_TO);
+}
+
 async function sendEmail(subject: string, text: string, recipients: string[]) {
   if (!SMTP_USER || !SMTP_PASS || !NOTIFY_TO) {
     throw new Error('SMTP credentials or recipients not configured');
@@ -124,8 +133,8 @@ app.post('/notify/allocations', async (req, res) => {
   }
 
   const testMode = await getTestMode();
-  const baseRecipients = parseRecipients(NOTIFY_TO);
-  const recipients = testMode ? [TEST_EMAIL] : baseRecipients;
+  const configuredRecipients = await getNotifyRecipients();
+  const recipients = testMode ? [TEST_EMAIL] : configuredRecipients;
   const subject = `${testMode ? '[TEST]' : ''} Allocation change (${modelId}) @ ${new Date(tickId).toISOString()}`;
   const text = [
     `Model: ${modelId}`,

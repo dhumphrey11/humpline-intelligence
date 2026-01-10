@@ -265,6 +265,14 @@ main {
   flex-wrap: wrap;
 }
 
+.input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--card-edge);
+  min-width: 260px;
+  font-size: 0.95rem;
+}
+
 .btn {
   padding: 8px 12px;
   border-radius: 10px;

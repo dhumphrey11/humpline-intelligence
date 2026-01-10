@@ -12,6 +12,7 @@ const authClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 type AppSettings = {
   test_mode: boolean;
+  notify_to?: string;
 };
 
 function extractEmail(header?: string) {
@@ -81,12 +82,14 @@ async function getActiveModelId() {
 }
 
 async function getSettings(): Promise<AppSettings> {
-  const result = await query<{ value: { enabled: boolean } }>(
-    'SELECT value FROM app_settings WHERE key = $1 LIMIT 1',
-    ['test_mode']
+  const rows = await query<{ key: string; value: any }>(
+    'SELECT key, value FROM app_settings WHERE key IN ($1, $2)',
+    ['test_mode', 'notify_to']
   );
-  const enabled = result.rows[0]?.value?.enabled ?? false;
-  return { test_mode: enabled };
+  const map = new Map(rows.rows.map((r) => [r.key, r.value]));
+  const enabled = map.get('test_mode')?.enabled ?? false;
+  const notify_to = map.get('notify_to')?.emails ?? null;
+  return { test_mode: enabled, notify_to };
 }
 
 async function setTestMode(enabled: boolean) {
@@ -95,6 +98,19 @@ async function setTestMode(enabled: boolean) {
      VALUES ('test_mode', $1, now())
      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
     [{ enabled }]
+  );
+}
+
+async function setNotifyRecipients(emails: string) {
+  const list = emails
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean);
+  await query(
+    `INSERT INTO app_settings (key, value, updated_at)
+     VALUES ('notify_to', $1, now())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+    [{ emails: list }]
   );
 }
 
@@ -315,6 +331,12 @@ app.post('/api/admin/settings/test_mode', requireAdmin, async (req, res) => {
   const enabled = Boolean(req.body?.enabled);
   await setTestMode(enabled);
   res.status(200).json({ test_mode: enabled });
+});
+
+app.post('/api/admin/settings/notify_to', requireAdmin, async (req, res) => {
+  const emails = (req.body?.emails as string | undefined) ?? '';
+  await setNotifyRecipients(emails);
+  res.status(200).json({ notify_to: emails });
 });
 
 app.get('/api/admin/data/overview', requireAdmin, async (_req, res) => {

@@ -1,45 +1,50 @@
-import { getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates } from '../lib/api';
+import { getAdminHealth, getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates } from '../lib/api';
 import { MiniChart } from '../components/mini-chart';
 import { SignalBadge } from '../components/signal-badge';
 
-export default async function CurrentPortfolioPage() {
-  const data = await getCurrentPortfolio();
-  const perf = await getPerformance('30d');
-  const recentStates = (await getPortfolioStates(5)) ?? [];
-  const tradesResponse = await getTrades(20);
+function formatPct(value: number) {
+  return `${(Number(value) * 100).toFixed(2)}%`;
+}
+
+export default async function DashboardPage() {
+  const [portfolio, perf, recentStatesRaw, tradesResponse, health] = await Promise.all([
+    getCurrentPortfolio(),
+    getPerformance('30d'),
+    getPortfolioStates(5),
+    getTrades(20),
+    getAdminHealth()
+  ]);
+
+  const recentStates = Array.isArray(recentStatesRaw) ? recentStatesRaw : [];
   const trades = Array.isArray(tradesResponse) ? tradesResponse : [];
-  const weightsCurrent = data?.state?.weights_current ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
-  const weightsTarget = data?.state?.weights_target ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
-  const equitySeries: number[] = [];
-  const signals = Array.isArray(data?.signals) ? data?.signals : [];
-  const holdings = data?.state?.holdings ?? {};
+  const weightsCurrent = portfolio?.state?.weights_current ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
+  const weightsTarget = portfolio?.state?.weights_target ?? { BTC: 0, ETH: 0, ADA: 0, CASH: 1 };
+  const signals = Array.isArray(portfolio?.signals) ? portfolio?.signals : [];
+  const holdings = portfolio?.state?.holdings ?? {};
+  const equity = Number(portfolio?.state?.total_equity_usd ?? 0);
 
   return (
     <section className="grid">
       <div className="grid cols-3">
         <div className="card">
           <div className="label">Total Equity</div>
-          <div className="stat">${Number(data?.state?.total_equity_usd ?? 0).toLocaleString()}</div>
-          <div className="pill">As of {data?.state?.tick_id ?? '—'}</div>
+          <div className="stat">${equity.toLocaleString()}</div>
+          <div className="pill">As of {portfolio?.state?.tick_id ?? '—'}</div>
         </div>
         <div className="card">
           <div className="label">30D Return</div>
-          <div className="stat">{(Number(perf?.metrics?.return_pct ?? 0) * 100).toFixed(2)}%</div>
-          {equitySeries.length > 0 ? (
-            <MiniChart points={equitySeries} />
-          ) : (
-            <p className="footer-note">Equity curve will appear after multiple ticks.</p>
-          )}
+          <div className="stat">{formatPct(perf?.metrics?.return_pct ?? 0)}</div>
         </div>
         <div className="card">
-          <div className="label">LLM Commentary</div>
-          <p>{data?.llm?.content ?? 'No commentary yet.'}</p>
+          <div className="label">Health</div>
+          <p className="footer-note">Latest tick: {health?.ticks?.[0]?.status ?? '—'}</p>
+          <p className="footer-note">Latest ingestion: {health?.ingestion_runs?.[0]?.status ?? '—'}</p>
         </div>
       </div>
 
       <div className="grid cols-2">
         <div className="card">
-          <div className="label">Weights Current vs Target</div>
+          <div className="label">Allocations (Current vs Target)</div>
           <table className="table">
             <thead>
               <tr>
@@ -86,7 +91,7 @@ export default async function CurrentPortfolioPage() {
 
       <div className="grid cols-2">
         <div className="card">
-          <div className="label">Current Positions</div>
+          <div className="label">Holdings</div>
           <table className="table">
             <thead>
               <tr>
@@ -126,7 +131,7 @@ export default async function CurrentPortfolioPage() {
       </div>
 
       <div className="card">
-        <div className="label">Last 20 Trades</div>
+        <div className="label">Recent Trades</div>
         <table className="table">
           <thead>
             <tr>

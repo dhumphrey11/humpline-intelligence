@@ -44,28 +44,23 @@ export default async function AdminPage() {
           <p className="footer-note">{latestIngestion?.started_at ?? 'No runs yet'}</p>
         </div>
       </div>
-      <div className="card">
-        <div className="label">Environment Mode</div>
-        <p className="footer-note">Toggle test/production. Test mode routes notifications only to dhumphrey11@gmail.com and skips LLM calls.</p>
-        <TestModeToggle initialEnabled={settings.test_mode} />
-      </div>
-      <div className="card">
-        <div className="label">Notification Recipients</div>
-        <p className="footer-note">Comma-separated emails. Test mode always overrides to dhumphrey11@gmail.com.</p>
-        <NotificationRecipients initialValue={settings.notify_to ?? []} />
-      </div>
-      <div className="card">
-        <div className="label">Add Tick</div>
-        <p className="footer-note">Run a tick now using current data. This triggers model run, metrics, notifications, and LLM (unless test mode skips).</p>
-        <TriggerTick />
-      </div>
-      <div className="grid cols-2">
+
+      <div className="grid cols-3">
         <div className="card">
-          <div className="label">Model Flags</div>
-          <p>Admin endpoints are protected by Google Identity / IAP.</p>
-          <div className="pill">POST /api/admin/models/:model_id/set_active</div>
-          <div className="pill">POST /api/admin/models/:model_id/set_contender</div>
+          <div className="label">Environment Mode</div>
+          <TestModeToggle initialEnabled={settings.test_mode} />
         </div>
+        <div className="card">
+          <div className="label">Notification Recipients</div>
+          <NotificationRecipients initialValue={settings.notify_to ?? []} />
+        </div>
+        <div className="card">
+          <div className="label">Add Tick</div>
+          <TriggerTick />
+        </div>
+      </div>
+
+      <div className="grid cols-2">
         <div className="card">
           <div className="label">Last Candle Per Symbol</div>
           <table className="table">
@@ -85,7 +80,14 @@ export default async function AdminPage() {
             </tbody>
           </table>
         </div>
+        <div className="card">
+          <div className="label">Model Flags</div>
+          <p>Admin endpoints are protected by Google Identity / IAP.</p>
+          <div className="pill">POST /api/admin/models/:model_id/set_active</div>
+          <div className="pill">POST /api/admin/models/:model_id/set_contender</div>
+        </div>
       </div>
+
       <div className="grid cols-2">
         <div className="card">
           <div className="label">Recent Ticks</div>

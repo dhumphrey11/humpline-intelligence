@@ -9,6 +9,8 @@ const ADMIN_BYPASS = process.env.ADMIN_BYPASS === 'true';
 const ADMIN_EMAILS = new Set(['dhumphrey11@gmail.com', 'trevorjames.snow@gmail.com']);
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
 const authClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+const TICK_ORCHESTRATOR_URL =
+  process.env.TICK_ORCHESTRATOR_URL ?? 'http://localhost:8081';
 
 type AppSettings = {
   test_mode: boolean;
@@ -305,6 +307,18 @@ app.post('/api/admin/models/:model_id/set_contender', requireAdmin, async (req, 
   const next = !(current.rows[0]?.is_contender ?? false);
   await query('UPDATE models SET is_contender = $1 WHERE model_id = $2', [next, modelId]);
   res.status(200).json({ status: 'ok', model_id: modelId, is_contender: next });
+});
+
+app.post('/api/admin/tick/run', requireAdmin, async (req, res) => {
+  const tickId = req.body?.tick_id as string | undefined;
+  const target = `${TICK_ORCHESTRATOR_URL}/tick/run${tickId ? `?tick_id=${encodeURIComponent(tickId)}` : ''}`;
+  try {
+    const response = await fetch(target, { method: 'POST' });
+    const body = await response.json().catch(() => null);
+    res.status(response.status).json(body ?? { status: response.status });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message ?? 'tick run failed' });
+  }
 });
 
 app.get('/api/admin/system/health', requireAdmin, async (_req, res) => {

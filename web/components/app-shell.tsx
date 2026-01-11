@@ -52,18 +52,19 @@ export function AppShell({ children, email, prices }: { children: ReactNode; ema
             </button>
           </div>
         </div>
-        <div
-          className="topbar-nav"
-          style={{
-            background: '#0f172a',
-            color: '#e2e8f0',
-            borderRadius: '12px',
-            padding: '8px 12px',
-            marginTop: '8px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
-          }}
-        >
-          <Navigation />
+        <div className="topbar-nav" style={{ width: '100%' }}>
+          <div
+            style={{
+              background: '#0f172a',
+              color: '#e2e8f0',
+              borderRadius: '0 0 12px 12px',
+              padding: '10px 12px',
+              marginTop: '4px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+            }}
+          >
+            <Navigation />
+          </div>
         </div>
       </header>
       {children}

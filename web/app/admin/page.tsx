@@ -1,4 +1,4 @@
-import { getAdminHealth, getAdminSettings, getApiHealth, getCurrentUser } from '../../lib/api';
+import { getActionLogs, getAdminHealth, getAdminSettings, getApiHealth, getCurrentUser } from '../../lib/api';
 import { TestModeToggle } from '../../components/test-mode-toggle';
 import { NotificationRecipients } from '../../components/notification-recipients';
 import { TriggerTick } from '../../components/trigger-tick';
@@ -19,12 +19,16 @@ export default async function AdminPage() {
     );
   }
 
-  const healthResponse = await getAdminHealth();
+  const [healthResponse, apiHealth, settings, actionLogs] = await Promise.all([
+    getAdminHealth(),
+    getApiHealth(),
+    getAdminSettings(),
+    getActionLogs()
+  ]);
   const health = healthResponse ?? { ticks: [], ingestion_runs: [], last_candles: [] };
-  const apiHealth = await getApiHealth();
   const latestTick = health.ticks[0];
   const latestIngestion = health.ingestion_runs[0];
-  const settings = (await getAdminSettings()) ?? { test_mode: false };
+  const adminSettings = settings ?? { test_mode: false };
 
   return (
     <section className="grid">
@@ -49,11 +53,11 @@ export default async function AdminPage() {
       <div className="grid cols-3">
         <div className="card">
           <div className="label">Environment Mode</div>
-          <TestModeToggle initialEnabled={settings.test_mode} />
+          <TestModeToggle initialEnabled={adminSettings.test_mode} />
         </div>
         <div className="card">
           <div className="label">Notification Recipients</div>
-          <NotificationRecipients initialValue={settings.notify_to ?? []} />
+          <NotificationRecipients initialValue={adminSettings.notify_to ?? []} />
         </div>
         <div className="card">
           <div className="label">Add Tick</div>
@@ -87,6 +91,34 @@ export default async function AdminPage() {
           <div className="pill">POST /api/admin/models/:model_id/set_active</div>
           <div className="pill">POST /api/admin/models/:model_id/set_contender</div>
         </div>
+      </div>
+
+      <div className="card">
+        <div className="label">Recent Actions</div>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Actor</th>
+              <th>Source</th>
+              <th>Action</th>
+              <th>Status</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(actionLogs ?? []).map((row: any) => (
+              <tr key={row.id}>
+                <td>{formatUtc(row.created_at)}</td>
+                <td>{row.actor ?? '—'}</td>
+                <td>{row.source ?? '—'}</td>
+                <td>{row.action ?? '—'}</td>
+                <td>{row.status ?? '—'}</td>
+                <td><pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{JSON.stringify(row.detail ?? {}, null, 2)}</pre></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div className="grid cols-2">

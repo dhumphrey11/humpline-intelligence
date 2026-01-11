@@ -1,4 +1,4 @@
-import { getAdminHealth, getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates, getActionLogs } from '../lib/api';
+import { getAdminHealth, getCurrentPortfolio, getPerformance, getTrades, getPortfolioStates } from '../lib/api';
 import { MiniChart } from '../components/mini-chart';
 import { SignalBadge } from '../components/signal-badge';
 import { formatUtc } from '../lib/format';
@@ -8,13 +8,12 @@ function formatPct(value: number) {
 }
 
 export default async function DashboardPage() {
-  const [portfolio, perf, recentStatesRaw, tradesResponse, health, actionLogs] = await Promise.all([
+  const [portfolio, perf, recentStatesRaw, tradesResponse, health] = await Promise.all([
     getCurrentPortfolio(),
     getPerformance('30d'),
     getPortfolioStates(5),
     getTrades(20),
-    getAdminHealth(),
-    getActionLogs()
+    getAdminHealth()
   ]);
 
   const recentStates = Array.isArray(recentStatesRaw) ? recentStatesRaw : [];
@@ -91,33 +90,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="label">Recent Actions</div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Actor</th>
-              <th>Source</th>
-              <th>Action</th>
-              <th>Status</th>
-              <th>Detail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(actionLogs ?? []).map((row: any) => (
-              <tr key={row.id}>
-                <td>{formatUtc(row.created_at)}</td>
-                <td>{row.actor ?? '—'}</td>
-                <td>{row.source ?? '—'}</td>
-                <td>{row.action ?? '—'}</td>
-                <td>{row.status ?? '—'}</td>
-                <td><pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{JSON.stringify(row.detail ?? {}, null, 2)}</pre></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </section>
   );
 }

@@ -26,7 +26,7 @@ export default async function DashboardPage() {
   const equity = Number(portfolio?.state?.total_equity_usd ?? 0);
   return (
     <section className="grid">
-      <div className="grid cols-4">
+      <div className="grid cols-3">
         <div className="card">
           <div className="label">Total Equity</div>
           <div className="stat">${equity.toLocaleString()}</div>
